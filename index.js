@@ -51,44 +51,150 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     console.error(`No command matching ${interaction.commandName} was found.`);
     return
   }
-  
-  //get the gpt stuff work
-  if(interaction.commandName === 'prompt'){
+  if (interaction.commandName === 'prompt2'){
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
+    prevMessages.reverse();
+
+    const sys_msg = 'Can you summarize the input conversations and output a relevant fictional story script with four sections? The sections should be relevent to the conversations and the users should be interested in acting out the script collaboratively \n' + 
+    'The format of each section should be JSON format as following:  {topic: , locations: , instructions:  ,}';
+
     let conversationLog = [
-      { role: 'system', 
-      content: 'You are a lakers fan'},
-      {
-        role: 'user',
-        content: 'Who is the GOAT player of NBA history'
+      { role: 'user', 
+      content: sys_msg,
+      // name: interaction.author.username
+     
       }
-    ];
+    ]
+    prevMessages.forEach((msg) => {
+      // if (msg.content.startsWith('!')) return;
+      if (msg.author.id !== client.user.id && msg.author.bot) return;
+      if (msg.author.username === 'CN-bot') return;
+      if(msg.content.startsWith('!')) return;
+      if (msg.content.startsWith('/')) return;
+      
+        conversationLog.push({
+          role: 'user',
+          content: msg.content,
+          name: msg.author.username
+            .replace(/\s+/g, '_')
+            .replace(/[^\w\s]/gi, ''),
+      });
+
+  });
+    await interaction.deferReply();
     const result = await openai
         .createChatCompletion({
           model: 'gpt-3.5-turbo',
           messages: conversationLog,
-          max_tokens: 50, // limit token usage
+          max_tokens: 300, // limit token usage
         })
         .catch((error) => {
           console.log(`OPENAI ERR: ${error}`);
         });
-    await interaction.deferReply();
+      
     await wait(4000);
     await interaction.editReply(result.data.choices[0].message)
+
   }
 
-  // try{
-  //   await command.execute(interaction)
-  // }
-  // catch (error) {
-	// 	console.error(error);
-	// 	if (interaction.replied || interaction.deferred) {
-	// 		await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-	// 	} else {
-	// 		await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-	// 	}
-	// }
+
+
+  //get the gpt stuff work
+  if(interaction.commandName === 'prompt'){
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
+    prevMessages.reverse();
+
+    const sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
+    'For example, if the conversation revolves around a couple studying abroad in different countries, one section of your output should have a JSON-like format as the following: \n'+
+    'title: A Day in Our Lives' +
+    'Scene 1: {topic: Studying/Working from home, Locations: [University Library, Classroom, Local Coffeeshop, Park], Description: Share the moment of studying }';
+    let conversationLog = [
+      { role: 'user', 
+      content: sys_msg,
+      // name: interaction.author.username
+    
+    } 
+    ];
+
+    prevMessages.forEach((msg) => {
+      // if (msg.content.startsWith('!')) return;
+      if (msg.author.id !== client.user.id && msg.author.bot) return;
+      if (msg.author.username === 'CN-bot') return;
+      if(msg.content.startsWith('!')) return;
+      if (msg.content.startsWith('/')) return;
+
+
+      // if (msg.author.id == client.user.id) {
+      //   conversationLog.push({
+      //     role: 'assistant',
+      //     content: msg.content,
+      //     name: msg.author.username
+      //       .replace(/\s+/g, '_')
+      //       .replace(/[^\w\s]/gi, ''),
+      //   });
+      // }
+      
+        conversationLog.push({
+          role: 'user',
+          content: msg.content,
+          name: msg.author.username
+            .replace(/\s+/g, '_')
+            .replace(/[^\w\s]/gi, ''),
+      });
+      
+      // if (msg.author.id == message.author.id && !msg.content.startsWith('!')) {
+      //   conversationLog.push({
+      //     role: 'user',
+      //     content: msg.content,
+      //     name: message.author.username
+      //       .replace(/\s+/g, '_')
+      //       .replace(/[^\w\s]/gi, ''),
+      //   });
+      // }
+    });
+    console.log(conversationLog)
+    
+
+
+    
+    await interaction.deferReply();
+    const result = await openai
+        .createChatCompletion({
+          model: 'gpt-3.5-turbo',
+          messages: conversationLog,
+          max_tokens: 300, // limit token usage
+        })
+        .catch((error) => {
+          console.log(`OPENAI ERR: ${error}`);
+        });
+      
+    await wait(4000);
+    await interaction.editReply(result.data.choices[0].message)
+    // await interaction.editReply('aha')
+  }
+  else{
+    try{
+      await command.execute(interaction)
+    }
+    catch (error) {
+      console.error(error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+      } else {
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+      }
+    }
+  }
+
+  
 
 })
+
+
+
+
+
+
 
 
 
@@ -102,37 +208,48 @@ client.on('messageCreate', async (message) => {
   if(message.content.startsWith('!')){
     let conversationLog = [
       { role: 'system', 
-      content: 'You are a script writer who would generate story topics relevant to the user input' },
+      content: 'You are an AI assistant' },
+      // {
+      //   role:'user',
+      //   content: 'The example of a scene: Scene 1: {topic: Studying/Attending Classes, locations: [University Library, Classroom, Local Coffeeshop, Park], instruction: Take a short clip of studying or attending class}'
+      // }
       
-  
     ];
     try {
       await message.channel.sendTyping();
-      let prevMessages = await message.channel.messages.fetch({ limit: 5 });
+      let prevMessages = await message.channel.messages.fetch({ limit: 1 });
       prevMessages.reverse();
       
       prevMessages.forEach((msg) => {
+        conversationLog.push({
+          role: 'user',
+          content: msg.content,
+          name: message.author.username
+            .replace(/\s+/g, '_')
+            .replace(/[^\w\s]/gi, ''),
+        });
         // if (msg.content.startsWith('!')) return;
-        if (msg.author.id !== client.user.id && message.author.bot) return;
-        if (msg.author.id == client.user.id) {
-          conversationLog.push({
-            role: 'assistant',
-            content: msg.content,
-            name: msg.author.username
-              .replace(/\s+/g, '_')
-              .replace(/[^\w\s]/gi, ''),
-          });
-        }
+      //   if (msg.author.id !== client.user.id && message.author.bot) return;
+
+      //   if (msg.author.id == client.user.id) {
+      //     conversationLog.push({
+      //       role: 'assistant',
+      //       content: msg.content,
+      //       name: msg.author.username
+      //         .replace(/\s+/g, '_')
+      //         .replace(/[^\w\s]/gi, ''),
+      //     });
+      //   }
   
-        if (msg.author.id == message.author.id) {
-          conversationLog.push({
-            role: 'user',
-            content: msg.content,
-            name: message.author.username
-              .replace(/\s+/g, '_')
-              .replace(/[^\w\s]/gi, ''),
-          });
-        }
+      //   if (msg.author.id == message.author.id && !msg.content.startsWith('!')) {
+      //     conversationLog.push({
+      //       role: 'user',
+      //       content: msg.content,
+      //       name: message.author.username
+      //         .replace(/\s+/g, '_')
+      //         .replace(/[^\w\s]/gi, ''),
+      //     });
+      //   }
       });
   
       const result = await openai
@@ -144,6 +261,7 @@ client.on('messageCreate', async (message) => {
         .catch((error) => {
           console.log(`OPENAI ERR: ${error}`);
         });
+      console.log(conversationLog)
       message.reply(result.data.choices[0].message);
     } catch (error) {
       console.log(`ERR: ${error}`);
