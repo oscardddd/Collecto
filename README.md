@@ -1,4 +1,4 @@
-# CN bot based on GPT-3.5-turbo
+# CN-bot test
 
 This is the test bot for project Collective-Narrative built using discord.js and the gpt-3.5-turbo model from Open AI. It would automatically fetch the conversations in the DC channel and output a collective story topic based on the input conversations that are relevant to the users' lives. 
 
