@@ -7,7 +7,12 @@ module.exports = {
 		.addStringOption(option =>
 			option.setName('type')
 			.setDescription('The type of prompt')
-			.setRequired(true)),
+			.setRequired(true)
+			.addChoices(
+				{name:	'actual',  value: '1'},
+				{name:	'fictional', value: '2'},
+
+			)),
 
 	async execute(interaction) {
 		await interaction.reply(`This command is run by ${interaction.user.username}`);

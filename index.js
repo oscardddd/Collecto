@@ -51,63 +51,76 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     console.error(`No command matching ${interaction.commandName} was found.`);
     return
   }
-  if (interaction.commandName === 'prompt2'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
-    prevMessages.reverse();
+  // if (interaction.commandName === 'prompt2'){
+  //   let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
+  //   prevMessages.reverse();
 
-    const sys_msg = 'Can you summarize the input conversations and output a relevant fictional story script with four sections? The sections should be relevent to the conversations and the users should be interested in acting out the script collaboratively \n' + 
-    'The format of each section should be JSON format as following:  {topic: , locations: , instructions:  ,}';
+  //   const sys_msg = 'Can you summarize the input conversations and output a relevant fictional story script with four sections? The sections should be relevent to the conversations and the users should be interested in acting out the script collaboratively \n' + 
+  //   'The format of each section should be JSON format as following:  {topic: , locations: , instructions:  ,}';
 
-    let conversationLog = [
-      { role: 'user', 
-      content: sys_msg,
-      // name: interaction.author.username
+  //   let conversationLog = [
+  //     { role: 'user', 
+  //     content: sys_msg,
+  //     // name: interaction.author.username
      
-      }
-    ]
-    prevMessages.forEach((msg) => {
-      // if (msg.content.startsWith('!')) return;
-      if (msg.author.id !== client.user.id && msg.author.bot) return;
-      if (msg.author.username === 'CN-bot') return;
-      if(msg.content.startsWith('!')) return;
-      if (msg.content.startsWith('/')) return;
+  //     }
+  //   ]
+  //   prevMessages.forEach((msg) => {
+  //     // if (msg.content.startsWith('!')) return;
+  //     if (msg.author.id !== client.user.id && msg.author.bot) return;
+  //     if (msg.author.username === 'CN-bot') return;
+  //     if(msg.content.startsWith('!')) return;
+  //     if (msg.content.startsWith('/')) return;
       
-        conversationLog.push({
-          role: 'user',
-          content: msg.content,
-          name: msg.author.username
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\s]/gi, ''),
-      });
+  //       conversationLog.push({
+  //         role: 'user',
+  //         content: msg.content,
+  //         name: msg.author.username
+  //           .replace(/\s+/g, '_')
+  //           .replace(/[^\w\s]/gi, ''),
+  //     });
 
-  });
-    await interaction.deferReply();
-    const result = await openai
-        .createChatCompletion({
-          model: 'gpt-3.5-turbo',
-          messages: conversationLog,
-          max_tokens: 300, // limit token usage
-        })
-        .catch((error) => {
-          console.log(`OPENAI ERR: ${error}`);
-        });
+  // });
+  //   await interaction.deferReply();
+  //   const result = await openai
+  //       .createChatCompletion({
+  //         model: 'gpt-3.5-turbo',
+  //         messages: conversationLog,
+  //         max_tokens: 300, // limit token usage
+  //       })
+  //       .catch((error) => {
+  //         console.log(`OPENAI ERR: ${error}`);
+  //       });
       
-    await wait(4000);
-    await interaction.editReply(result.data.choices[0].message)
+  //   await wait(4000);
+  //   await interaction.editReply(result.data.choices[0].message)
 
-  }
+  // }
 
 
 
   //get the gpt stuff work
   if(interaction.commandName === 'prompt'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
+    
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
     prevMessages.reverse();
 
-    const sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
-    'For example, if the conversation revolves around a couple studying abroad in different countries, one section of your output should have a JSON-like format as the following: \n'+
-    'title: A Day in Our Lives' +
-    'Scene 1: {topic: Studying/Working from home, Locations: [University Library, Classroom, Local Coffeeshop, Park], Description: Share the moment of studying }';
+    let sys_msg = ''
+    let type = interaction.options.getString('type');
+    if(type === '1'){
+      // sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
+      // 'For example, if the conversation revolves around a couple studying abroad in different countries, one section of your output should have a JSON-like format as the following: \n'+
+      // 'title: A Day in Our Lives' +
+      // 'Scene 1: {topic: Studying/Working from home, Locations: [University Library, Classroom, Local Coffeeshop, Park], Description: Share the moment of studying }';
+
+      sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
+      'The output should be of JSON format with four sections. The format of each section should have a JSON format with three fields as the following: {topic: , locations: , instructions: ,}'
+    }
+    else if(type === '2'){
+      sys_msg = 'Can you summarize the input conversations and output a relevant fictional story script with four sections? The sections should be relevent to the conversations and the users should be interested in acting out the script collaboratively \n' + 
+      'The format of each section should be JSON format as following:  {topic: , locations: , instructions:  ,}';
+    }
+    
     let conversationLog = [
       { role: 'user', 
       content: sys_msg,
@@ -122,6 +135,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
       if (msg.author.username === 'CN-bot') return;
       if(msg.content.startsWith('!')) return;
       if (msg.content.startsWith('/')) return;
+      if (msg.content.startsWith('+')) return;
 
 
       // if (msg.author.id == client.user.id) {
@@ -141,16 +155,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
             .replace(/\s+/g, '_')
             .replace(/[^\w\s]/gi, ''),
       });
-      
-      // if (msg.author.id == message.author.id && !msg.content.startsWith('!')) {
-      //   conversationLog.push({
-      //     role: 'user',
-      //     content: msg.content,
-      //     name: message.author.username
-      //       .replace(/\s+/g, '_')
-      //       .replace(/[^\w\s]/gi, ''),
-      //   });
-      // }
+    
     });
     console.log(conversationLog)
     
