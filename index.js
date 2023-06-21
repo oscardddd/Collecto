@@ -1,10 +1,39 @@
+const express = require('express')
+const app = express();
+const port = 4000;
+const dotenv = require("dotenv");
+const cors = require("cors");
+require('dotenv/config')
+// app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
+// app.use(bodyParser.json({ limit: "50mb" }));
 
-require('dotenv/config');
+
+
+
 const { Client, Collection, Events, GatewayIntentBits, IntentsBitField, SlashCommandBuilder} = require('discord.js');
 const { Configuration, OpenAIApi } = require('openai');
 const fs = require('node:fs');
 const path = require('node:path');
 const wait = require('node:timers/promises').setTimeout;
+
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+  })
+);
+
+app.get("/", (req, res) => {
+  res.send("Collective Narrative Server");
+});
+
+const userRouter = require("./routes/userRoutes");
+app.use("/user", userRouter);
+
+
+
+app.listen(port, () => {
+  console.log(`Example app listening on port ${port}`)
+})
 
 
 const client = new Client({
