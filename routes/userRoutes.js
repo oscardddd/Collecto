@@ -2,7 +2,7 @@ const express = require('express')
 const multer  = require('multer')
 const upload = multer({ dest: 'uploads/' })
 const router = express.Router()
-const { uploadFile } = require('../s3')
+const { uploadFile, getFileStream } = require('../s3')
 
 router.post('/upload',upload.single('image'), async(req,res)=>{
     const file = req.file
@@ -18,6 +18,13 @@ router.post('/upload',upload.single('image'), async(req,res)=>{
     res.send('success')
 })
 
+router.get('/image/:key', (req, res)=>{
+    console.log(req.params)
+    const key = req.params.key
+    const readStream = getFileStream(key)
+    
+    readStream.pipe(res)
+})
 
 
 module.exports = router
