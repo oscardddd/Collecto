@@ -18,7 +18,7 @@ const wait = require('node:timers/promises').setTimeout;
 
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: ["http://localhost:3000", "https://cn-gallery.vercel.app"],
   })
 );
 

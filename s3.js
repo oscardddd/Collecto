@@ -7,6 +7,32 @@ const accessKeyId = process.env.AWS_ACCESS_KEY
 const secretAccessKey = process.env.AWS_SECRET_KEY
 const region = process.env.AWS_BUCKET_REGION
 
+//make sure the file submitted is an image
+function sanitizeFile(file) {
+  // Define the allowed extension
+  const fileExts = [".png", ".jpg", ".jpeg", ".gif"];
+
+  // Check allowed extensions
+  const isAllowedExt = fileExts.includes(
+      path.extname(file.originalname.toLowerCase())
+  );
+
+  // Mime type must be an image
+  // const isAllowedMimeType = file.mimetype.startsWith("image/");
+
+  if (isAllowedExt) {
+      console.log("file type correct ");
+      next();
+       // no errors
+  } else {
+      // pass error msg to callback, which can be displaye in frontend
+      console.log("Error: File type not allowed!");
+  }
+}
+
+exports.sanitizeFile = sanitizeFile
+
+
 
 const s3 = new S3({
     region,
