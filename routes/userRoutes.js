@@ -47,6 +47,7 @@ router.post('/upload',upload.single('image'), async(req,res)=>{
     let sid = makeid(6)
     try{
         let s3_result = await uploadFile(file)
+        console.log(s3_result)
         let sql = `INSERT INTO images(story_id, img_key) 
         VALUES('${sid}', '${s3_result.key}') RETURNING id`;
         
@@ -69,14 +70,22 @@ router.post('/upload',upload.single('image'), async(req,res)=>{
     // res.send('success')
 })
 
-
+//retrieve image from s3
 
 router.get('/image/:key', (req, res)=>{
-    console.log(req.params)
-    const key = req.params.key
-    const readStream = getFileStream(key)
-    console.log("Trying to retrieve image from s3")
-    readStream.pipe(res)
+    try{
+        console.log(req.params)
+        const key = req.params.key
+        const readStream = getFileStream(key)
+        console.log("Trying to retrieve image from s3")
+        readStream.pipe(res)
+        // res.send("not success")
+    }
+    catch(e){
+        console.log(e)
+        res.send("not success")
+    }
+    
 })
 
 
