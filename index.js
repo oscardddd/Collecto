@@ -30,6 +30,9 @@ app.get("/", (req, res) => {
 const userRouter = require("./routes/userRoutes");
 app.use("/user", userRouter);
 
+app.get("/test", (req,res)=>{
+  res.send("test123")
+})
 
 
 app.listen(port, () => {
