@@ -3,6 +3,7 @@ const app = express();
 const port = process.env.PORT || 4000;
 const dotenv = require("dotenv");
 const cors = require("cors");
+const userRouter = require("./routes/userRoutes");
 require('dotenv/config')
 // app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 // app.use(bodyParser.json({ limit: "50mb" }));
@@ -27,7 +28,7 @@ app.get("/", (req, res) => {
   res.send("Collective Narrative Server");
 });
 
-const userRouter = require("./routes/userRoutes");
+
 app.use("/user", userRouter);
 
 app.get("/test", (req,res)=>{

@@ -104,5 +104,8 @@ router.get('/test123', async (req, res)=>{
 
 })
 
+router.get('/test', async (req,res)=>{
+    res.send("okk")
+})
 
 module.exports = router
