@@ -5,6 +5,7 @@ module.exports = async function(sql) {
     var client = new pg.Client(conString);
     try { 
         await client.connect()
+        console.log(sql)
         let output;
         if (typeof sql == 'object') {
             output = []
