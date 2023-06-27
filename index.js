@@ -206,7 +206,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
         .catch((error) => {
           console.log(`OPENAI ERR: ${error}`);
         });
-      
+    console.log(result)
     await wait(4000);
     await interaction.editReply(result.data.choices[0].message)
     // await interaction.editReply('aha')
