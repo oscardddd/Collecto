@@ -7,6 +7,8 @@ const upload = multer({ dest: 'uploads/' })
 const router = express.Router()
 const { uploadFile, getFileStream, sanitizeFile} = require('../s3')
 
+let PROD = 'http://ec2-54-147-169-3.compute-1.amazonaws.com:4000'
+
 async function removeFile(dir){
     // let files = fs.readdirSync(dir)
     // files.forEach(file =>{
@@ -38,16 +40,16 @@ function makeid(length) {
     return result;
 }
 
-console.log(makeid(5));
 
-router.post('/upload',upload.single('image'), async(req,res)=>{
+
+router.post('/upload', upload.single('image'), async(req,res)=>{
     const file = req.file
     const info = req.body.description
     console.log("the file info is: ", file)
     let sid = makeid(6)
     try{
         let s3_result = await uploadFile(file)
-        console.log(s3_result)
+        // console.log(s3_result)
         let sql = `INSERT INTO images(story_id, img_key) 
         VALUES('${sid}', '${s3_result.key}') RETURNING id`;
         
@@ -58,14 +60,16 @@ router.post('/upload',upload.single('image'), async(req,res)=>{
             console.log("insert image unsuccess")
         } else {
             console.log("successfully insert key")
-            res.status(200).send('successfully insert image key')
+           
         }
         await removeFile(file.path)
         console.log(s3_result.key)
+        res.status(200).send([true, `${PROD}/user/image/${s3_result.key}`])
         
     }
     catch(error){
         console.log(error)
+        res.status(403).send("error trying to upload image")
     }
     // res.send('success')
 })
