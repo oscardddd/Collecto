@@ -1,13 +1,14 @@
 const express = require('express')
 const multer  = require('multer')
 const fs = require('fs')
-
+const makeid = require ('../makeid')
 var callDB = require('../dbCall')
 const upload = multer({ dest: 'uploads/' })
 const router = express.Router()
 const { uploadFile, getFileStream, sanitizeFile} = require('../s3')
 
-let PROD = 'http://ec2-54-147-169-3.compute-1.amazonaws.com:4000'
+// let PROD = 'http://ec2-54-147-169-3.compute-1.amazonaws.com:4000'
+let PROD = `http://localhost:4000`
 
 async function removeFile(dir){
     // let files = fs.readdirSync(dir)
@@ -28,17 +29,6 @@ async function removeFile(dir){
 }
 
 
-function makeid(length) {
-    let result = '';
-    const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    const charactersLength = characters.length;
-    let counter = 0;
-    while (counter < length) {
-      result += characters.charAt(Math.floor(Math.random() * charactersLength));
-      counter += 1;
-    }
-    return result;
-}
 
 
 

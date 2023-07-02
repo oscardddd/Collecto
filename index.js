@@ -5,10 +5,20 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const userRouter = require("./routes/userRoutes");
 require('dotenv/config')
+const makeid = require ('./makeid')
+const { uploadFile, getFileStream, sanitizeFile, uploadFile2} = require('./s3')
+
+var callDB = require('./dbCall')
+var downloadImage = require('./downloadfile')
 // app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 // app.use(bodyParser.json({ limit: "50mb" }));
 
+async function removeFile(dir){
+  await fs.unlinkSync(dir)
+  console.log(`successfully empty the uploaded picture at ${dir} `)
+  
 
+}
 
 
 const { Client, Collection, Events, GatewayIntentBits, IntentsBitField, SlashCommandBuilder} = require('discord.js');
@@ -16,6 +26,8 @@ const { Configuration, OpenAIApi } = require('openai');
 const fs = require('node:fs');
 const path = require('node:path');
 const wait = require('node:timers/promises').setTimeout;
+
+let PROD = 'http://localhost:4000'
 
 app.use(
   cors({
@@ -76,7 +88,6 @@ const configuration = new Configuration({
 const openai = new OpenAIApi(configuration);
 
 
-
 client.on(Events.InteractionCreate, async (interaction)=>{
   if(!interaction.isChatInputCommand()) return
   let command = interaction.client.commands.get(interaction.commandName);
@@ -85,10 +96,84 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     console.error(`No command matching ${interaction.commandName} was found.`);
     return
   }
+  if (interaction.commandName === 'collect'){
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 1});
+		prevMessages.reverse()
+    // console.log(prevMessages)
+    const sid = makeid(6)
+
+    let server_url = 'https://cn-gallery.vercel.app/libraries'
+    console.log(makeid(6))
+    let img_url = ''
+    prevMessages.forEach(async(msg) => {
+     
+      if(msg.attachments.size > 0){
+        let content = ''
+        if (msg.content.size > 0){
+          content = msg.content
+          console.log(content)
+        }
+        img_url = msg.attachments.first().url
+        let aha = await downloadImage(img_url, `./uploads/${sid}.jpg`)
+        console.log(img_url)
+       
+        // fs.exists( `./uploads/${sid}.jpg`, (exists) => {
+        //   console.log(exists ? '存在' : '不存在');
+        // });
+        let s3_result = await uploadFile2(`./uploads/${sid}.jpg`, sid)
+        console.log(s3_result.key)
+        
+        let sql = `INSERT INTO images(story_id, img_key) 
+        VALUES('${sid}', '${s3_result.key}') RETURNING id`;
+
+        let data = await callDB(sql)
+        if (!data || data.length == 0) {
+              res.status(404).send("unsuccess")
+              console.log("insert image unsuccess")
+        } else {
+              console.log("successfully insert key")
+            
+        }
+        await removeFile(`./uploads/${sid}.jpg`)
+
+      }
+      if(msg.content !== ''){
+        console.log("2: ", msg.content)
+
+        let content = msg.content
+        
+        let sql2 = `
+        UPDATE images
+        SET annotation='${content}'
+        WHERE img_key='${sid}'
+        RETURNING id;
+        `
+        let data = await callDB(sql2)
+        if (!data || data.length == 0) {
+              // res.status(404).send("unsuccess")
+              console.log("update annotation unsuccess")
+        } else {
+              console.log(`successfully update annotation for image ${sid}`)
+            
+        }
+
+        console.log(content)
+        
+        
+      }
+    })
+    
+ 
+		await interaction.reply(`Successfully submitted the image! Check it up at ${PROD}/user/image`);
+		
+
+	
+  }
 // blast from the past
-  if (interaction.commandName === 'past'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 10 });
+  else if (interaction.commandName === 'past'){
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 1 });
     prevMessages.reverse();
+    // console.log(prevMessages)
     let sys_msg = 'We are doing a past memory sharing activity, you are an AI assistant who would be given a converation, and you should generate 5 possible sharing topics based on the conversation send to you. '
     let conversationLog = [
       { role: 'user', 
@@ -97,13 +182,18 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     
     } 
     ];
+    prevMessages.forEach((msg) => {
+      if (msg.attachments){
+        console.log("url", msg.attachments)
+      }
+    })
 
 
     prevMessages.forEach((msg) => {
       // if (msg.content.startsWith('!')) return;
       if (msg.author.id !== client.user.id && msg.author.bot) return;
       if (msg.author.username === 'CN-bot') return;
-      if(msg.content.startsWith('!')) return;
+      if (msg.content.startsWith('!')) return;
       if (msg.content.startsWith('/')) return;
       if (msg.content.startsWith('+')) return;
 

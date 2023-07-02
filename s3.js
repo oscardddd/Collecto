@@ -40,7 +40,8 @@ const s3 = new S3({
     secretAccessKey
 })
 //upload a file to s3
-function uploadFile(file) {
+function uploadFile(file) { 
+    console.log(file)
     const fileStream = fs.createReadStream(file.path)
   
     const uploadParams = {
@@ -53,6 +54,23 @@ function uploadFile(file) {
   }
 
 exports.uploadFile = uploadFile
+
+
+function uploadFile2(filepath, key) { 
+  
+  const fileStream = fs.createReadStream(filepath)
+  // console.log(fileStream)
+
+  const uploadParams = {
+    Bucket: bucketName,
+    Body: fileStream,
+    Key: key
+  }
+
+  return s3.upload(uploadParams).promise()
+}
+exports.uploadFile2 = uploadFile2
+
 
 //download a file from s3
 
