@@ -25,7 +25,6 @@ async function removeFile(dir){
     await fs.unlinkSync(dir)
     console.log(`successfully empty the uploaded picture at ${dir} `)
     
-
 }
 
 

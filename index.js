@@ -171,10 +171,17 @@ client.on(Events.InteractionCreate, async (interaction)=>{
   }
 // blast from the past
   else if (interaction.commandName === 'past'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 1 });
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
     prevMessages.reverse();
     // console.log(prevMessages)
-    let sys_msg = 'We are doing a past memory sharing activity, you are an AI assistant who would be given a converation, and you should generate 5 possible sharing topics based on the conversation send to you. '
+    // let sys_msg = 'We are doing a past memory sharing activity, \
+    // where people would share pictures with descriptions of their past experiences. you are an AI assistant who would be given a converation, and you should generate 5 possible sharing topics based on the conversation send to you. '
+    // let sys_msg = 'Can you summarize the 5 main topics of the conversation happened in the discord channel? The conversation is as following:'
+    // let sys_msg = 'We are doing a past memory sharing activity, \
+    // where people share pictures with descriptions of their past experiences. As an AI assistant, you would be given a conversation and the user profiles of all users who involve in the conversation. Can you generate 3 sharing topics based on the common interest of the users out of their conversation and profiles?'
+    
+    // let sys_msg = 'Based on the conversation and the user profile, can you make a guess on what are the possibe interests of all users in the conversation?'
+    let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
     let conversationLog = [
       { role: 'user', 
       content: sys_msg,
@@ -182,11 +189,23 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     
     } 
     ];
-    prevMessages.forEach((msg) => {
-      if (msg.attachments){
-        console.log("url", msg.attachments)
-      }
-    })
+    conversationLog.push({
+      role: 'user',
+      content: 'User information of oscardd5: recently I am learning to cook!!! My career goal at this stage is Find an intern next summer lol',
+      name: 'oscardd5'
+    });
+
+    conversationLog.push({
+      role: 'user',
+      content: 'User information of _234kia: Recently I am learning to do leetcode questions. My career goal at this stage is Find an intern next summer lol',
+      name: 'oscardd5'
+    });
+    
+    // prevMessages.forEach((msg) => {
+    //   if (msg.attachments){
+    //     console.log("url", msg.attachments)
+    //   }
+    // })
 
 
     prevMessages.forEach((msg) => {
@@ -199,7 +218,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
       conversationLog.push({
           role: 'user',
-          content: msg.content,
+          content: msg.author.username + ': '+ msg.content,
           name: msg.author.username
             .replace(/\s+/g, '_')
             .replace(/[^\w\s]/gi, ''),
