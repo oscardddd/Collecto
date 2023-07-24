@@ -170,103 +170,18 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 	
   }
 // blast from the past
-  else if (interaction.commandName === 'past'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
-    prevMessages.reverse();
-    // console.log(prevMessages)
-    // let sys_msg = 'We are doing a past memory sharing activity, \
-    // where people would share pictures with descriptions of their past experiences. you are an AI assistant who would be given a converation, and you should generate 5 possible sharing topics based on the conversation send to you. '
-    // let sys_msg = 'Can you summarize the 5 main topics of the conversation happened in the discord channel? The conversation is as following:'
-    // let sys_msg = 'We are doing a past memory sharing activity, \
-    // where people share pictures with descriptions of their past experiences. As an AI assistant, you would be given a conversation and the user profiles of all users who involve in the conversation. Can you generate 3 sharing topics based on the common interest of the users out of their conversation and profiles?'
-    
-    // let sys_msg = 'Based on the conversation and the user profile, can you make a guess on what are the possibe interests of all users in the conversation?'
-    let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
-    let conversationLog = [
-      { role: 'user', 
-      content: sys_msg,
-      // name: interaction.author.username
-    
-    } 
-    ];
-    conversationLog.push({
-      role: 'user',
-      content: 'User information of oscardd5: recently I am learning to cook!!! My career goal at this stage is Find an intern next summer lol',
-      name: 'oscardd5'
-    });
-
-    conversationLog.push({
-      role: 'user',
-      content: 'User information of _234kia: Recently I am learning to do leetcode questions. My career goal at this stage is Find an intern next summer lol',
-      name: 'oscardd5'
-    });
-    
-    // prevMessages.forEach((msg) => {
-    //   if (msg.attachments){
-    //     console.log("url", msg.attachments)
-    //   }
-    // })
-
-
-    prevMessages.forEach((msg) => {
-      // if (msg.content.startsWith('!')) return;
-      if (msg.author.id !== client.user.id && msg.author.bot) return;
-      if (msg.author.username === 'CN-bot') return;
-      if (msg.content.startsWith('!')) return;
-      if (msg.content.startsWith('/')) return;
-      if (msg.content.startsWith('+')) return;
-
-      conversationLog.push({
-          role: 'user',
-          content: msg.author.username + ': '+ msg.content,
-          name: msg.author.username
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\s]/gi, ''),
-      });
-    
-    });
-    console.log(conversationLog)
-
-    await interaction.deferReply();
-
-    const result = await openai
-        .createChatCompletion({
-          model: 'gpt-3.5-turbo',
-          messages: conversationLog,
-          max_tokens: 300, // limit token usage
-        })
-        .catch((error) => {
-          console.log(`OPENAI ERR: ${error}`);
-        });
-    // console.log(result)
-    await wait(4000);
-    await interaction.editReply(result.data.choices[0].message)
-
-  }
-
-
-  //get the gpt stuff work
-  // if(interaction.commandName === 'prompt'){
-    
+  // else if (interaction.commandName === 'past'){
   //   let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
   //   prevMessages.reverse();
-
-  //   let sys_msg = ''
-  //   let type = interaction.options.getString('type');
-  //   if(type === '1'){
-  //     // sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
-  //     // 'For example, if the conversation revolves around a couple studying abroad in different countries, one section of your output should have a JSON-like format as the following: \n'+
-  //     // 'title: A Day in Our Lives' +
-  //     // 'Scene 1: {topic: Studying/Working from home, Locations: [University Library, Classroom, Local Coffeeshop, Park], Description: Share the moment of studying }';
-
-  //     sys_msg = 'Can you summarize the input conversations and output a relevant video framework with four sections? The sections should be relevent to what the users are up to and successfully captures the daily routine they have based on the conversation. They would be able to contribute to it collaboratively \n' + 
-  //     'The output should be of JSON format with four sections. The format of each section should have a JSON format with three fields as the following: {topic: , locations: , instructions: ,}'
-  //   }
-  //   else if(type === '2'){
-  //     sys_msg = 'Can you summarize the input conversations and output a relevant fictional story script with four sections? The sections should be relevent to the conversations and the users should be interested in acting out the script collaboratively \n' + 
-  //     'The format of each section should be JSON format as following:  {topic: , locations: , instructions:  ,}';
-  //   }
+  //   // console.log(prevMessages)
+  //   // let sys_msg = 'We are doing a past memory sharing activity, \
+  //   // where people would share pictures with descriptions of their past experiences. you are an AI assistant who would be given a converation, and you should generate 5 possible sharing topics based on the conversation send to you. '
+  //   // let sys_msg = 'Can you summarize the 5 main topics of the conversation happened in the discord channel? The conversation is as following:'
+  //   // let sys_msg = 'We are doing a past memory sharing activity, \
+  //   // where people share pictures with descriptions of their past experiences. As an AI assistant, you would be given a conversation and the user profiles of all users who involve in the conversation. Can you generate 3 sharing topics based on the common interest of the users out of their conversation and profiles?'
     
+  //   // let sys_msg = 'Based on the conversation and the user profile, can you make a guess on what are the possibe interests of all users in the conversation?'
+  //   let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
   //   let conversationLog = [
   //     { role: 'user', 
   //     content: sys_msg,
@@ -274,29 +189,25 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     
   //   } 
   //   ];
+   
+  //   // prevMessages.forEach((msg) => {
+  //   //   if (msg.attachments){
+  //   //     console.log("url", msg.attachments)
+  //   //   }
+  //   // })
+
 
   //   prevMessages.forEach((msg) => {
   //     // if (msg.content.startsWith('!')) return;
   //     if (msg.author.id !== client.user.id && msg.author.bot) return;
   //     if (msg.author.username === 'CN-bot') return;
-  //     if(msg.content.startsWith('!')) return;
+  //     if (msg.content.startsWith('!')) return;
   //     if (msg.content.startsWith('/')) return;
   //     if (msg.content.startsWith('+')) return;
 
-
-  //     // if (msg.author.id == client.user.id) {
-  //     //   conversationLog.push({
-  //     //     role: 'assistant',
-  //     //     content: msg.content,
-  //     //     name: msg.author.username
-  //     //       .replace(/\s+/g, '_')
-  //     //       .replace(/[^\w\s]/gi, ''),
-  //     //   });
-  //     // }
-      
-  //       conversationLog.push({
+  //     conversationLog.push({
   //         role: 'user',
-  //         content: msg.content,
+  //         content: msg.author.username + ': '+ msg.content,
   //         name: msg.author.username
   //           .replace(/\s+/g, '_')
   //           .replace(/[^\w\s]/gi, ''),
@@ -304,8 +215,9 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     
   //   });
   //   console.log(conversationLog)
-    
+
   //   await interaction.deferReply();
+
   //   const result = await openai
   //       .createChatCompletion({
   //         model: 'gpt-3.5-turbo',
@@ -318,8 +230,113 @@ client.on(Events.InteractionCreate, async (interaction)=>{
   //   // console.log(result)
   //   await wait(4000);
   //   await interaction.editReply(result.data.choices[0].message)
-  //   // await interaction.editReply('aha')
+
   // }
+
+  else 
+    if(interaction.commandName === 'start'){
+    let oscar_profile = 
+    '20 year old, student studying computer science. Evanston, IL. \
+    I am doing a research project and it goes pretty good. I have built a solid system and I would like to test it this weekend!\
+    Last week I went to a potluck for the first time in my life, I asked some people to help me with my resume, I went to a fancy Japanese restaurant!\
+    My life goal at the moment is to attain inner peace and try to find a career path '
+
+    let kazi_profile = 
+    '20 year old, college student studying big data. Hangzhou, China.  \
+    Last week I went to a concert with my high school friends, I went a good Hangzhou cuisine, and I learned to write multi-thread compiter programs.\
+    My life goal at the moment is to travel around the world'
+
+    let sys_msg = 'You are an AI assistant who would provide a conversation topic that is of mutual interest to the users that is having a high school classmates reunion. Based on the prior survey questions below, can you generate 3 topics that is of mutual interest with explanations?' 
+
+    let nc_profile = 
+    '20 year old, college student studying economics and math. Chicago, IL. \
+    Last week I had a motorbike ride with my friends, I started my new internship of investment banking, and I re-visited my high school two years after graduation. \
+    My life goal at the moment is to get a good GRE grade.'
+    
+    let andy_profile = 
+    '20 year old, college student studying math. now in Shanghai, China' + 
+    'My favorite part about my current school is 自由时间比较多'+
+    'Three thinsg I am working on these days are: 产品运营 数据库推荐 竞品分析'+
+    'City I wanna visit: 哥本哈根 大阪 南极' +
+    'My life goal rn is 在上海找份工作'
+
+
+
+
+    let zyf_profile = 
+    '20 year old, college student studying finance. now in Jinan, China' +
+    'My favorite part of my school is Reputation and small class-size.' +
+    'Three thinsg I am working on these days are: Internship, spending time with family, networking'+
+    'City I wanna visit: Hong Kong, London, Canton' +
+    'My life goal rn is Hope my mom will recover soon & end up with a good graduate program'
+
+    let haoran_profile = 
+    '20 year old, college student studying econ. now in Jinan, China'+
+    'My favorite part of my school is Sense of community, diversity, inclusiveness.' +
+    'City I wanna visit: Paris, Berlin, Invercargill.' +
+    'Three things I am working on these days are Life. Money. Career.'+
+    'My life goal rn is Be happy'
+
+
+    let zyf_profile2 = 
+    'Music/movie/book/TV: 英雄; ' +
+    'Hobby and interest: Smoking;  ' +
+    'Sports: Soccer 山东泰山' +
+    'Technology: Apple ' +
+    'Gaming: WildRift' + 
+    'Professional background: Investment Banking; '+
+    'Academic: Student studying Econ; '+
+    'Goals and aspirations: Pussy, Money, Fame '
+
+    let oscar_profile2 = 
+    'Music/movie/book/TV shows: Ocean Eyes; ' +
+    'Hobby and interest: Basketball;  ' +
+    'Sports: Lakers!;  ' +
+    'Technology: Vision Pro?;  ' +
+    'Gaming: Civ 6; ' + 
+    'Professional background: No experience; '+
+    'Academic l: Student studying CS; '+
+    'Goals and aspirations: make money babe; '
+
+    let oscardd5_profile3 = 
+    ''
+    
+
+    let conversationLog = [
+      { role: 'user', 
+      content: sys_msg,
+      // name: interaction.author.username
+    }]
+   
+    conversationLog.push({
+      role: 'user',
+      content: 'survey of oscardd5: '+ oscar_profile
+    });
+    conversationLog.push({
+      role: 'user',
+      content: 'survey of _234kia: '+ andy_profile
+
+    });
+    
+    console.log(conversationLog)
+    await interaction.deferReply();
+
+    const result = await openai
+        .createChatCompletion({
+          model: 'gpt-3.5-turbo',
+          messages: conversationLog,
+          max_tokens: 300, // limit token usage
+          temperature: 0.8
+        })
+        .catch((error) => {
+          console.log(`OPENAI ERR: ${error}`);
+        });
+    // console.log(result)
+    await wait(4000);
+    await interaction.editReply(result.data.choices[0].message)
+    
+  }
+
 
 
   else{
@@ -341,12 +358,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 })
 
 
-
-
-
-
-
-
+// Chatting commands
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
