@@ -28,7 +28,9 @@ async function removeFile(dir){
 }
 
 
-
+router.post('/profile', async(req, res)=>{
+    let sql = `INSERT INTO profile()`
+})
 
 
 router.post('/upload', upload.single('image'), async(req,res)=>{
