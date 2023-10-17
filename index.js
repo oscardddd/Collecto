@@ -83,7 +83,7 @@ client.on('ready', () => {
 });
 
 const configuration = new Configuration({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPEN_AI,
 });
 
 const openai = new OpenAIApi(configuration);
@@ -166,7 +166,52 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 		await interaction.reply(`Successfully submitted the image! Check it up at ${PROD}/user/image`);
 	
   }
-  
+  else if (interaction.commandName === 'analyze'){
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
+    prevMessages.reverse();
+    let sys_msg = 'You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame? \
+    For example, If one of the user mentioned he would have a birthday party next wednesday at 10 am, you would return user x has a birthday party next Wednesday.'
+    let conversationLog = [
+      { role: 'user', 
+      content: sys_msg,
+      // name: interaction.author.username
+    } 
+    ];
+   
+    prevMessages.forEach((msg) => {
+      // if (msg.content.startsWith('!')) return;
+      if (msg.author.id !== client.user.id && msg.author.bot) return;
+      if (msg.author.username === 'CN-bot') return;
+      if (msg.content.startsWith('!')) return;
+      if (msg.content.startsWith('/')) return;
+      if (msg.content.startsWith('+')) return;
+
+      conversationLog.push({
+          role: 'user',
+          content: msg.author.username + ': '+ msg.content,
+          name: msg.author.username
+            .replace(/\s+/g, '_')
+            .replace(/[^\w\s]/gi, ''),
+      });
+    
+    });
+    console.log(conversationLog)
+
+    await interaction.deferReply();
+
+    const result = await openai
+        .createChatCompletion({
+          model: 'gpt-4',
+          messages: conversationLog,
+          max_tokens: 300, // limit token usage
+        })
+        .catch((error) => {
+          console.log(`OPENAI ERR: ${error}`);
+        });
+    // console.log(result)
+    await wait(4000);
+    await interaction.editReply(result.data.choices[0].message)
+  }
 // blast from the past
   else if (interaction.commandName === 'past'){
     let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
@@ -202,7 +247,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
     const result = await openai
         .createChatCompletion({
-          model: 'gpt-3.5-turbo',
+          model: 'gpt-4',
           messages: conversationLog,
           max_tokens: 300, // limit token usage
         })
@@ -215,10 +260,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
   }
 
-
-
-  else 
-    if(interaction.commandName === 'start'){
+  else if(interaction.commandName === 'start'){
       await interaction.deferReply();
       await wait(4000);
       let sys_msg = "你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 请直接返回一个列表, 比如 [游戏, 电影, 音乐]"
@@ -248,7 +290,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
       console.log("conversationlog1", conversationLog)
       const result1 = await openai
       .createChatCompletion({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4',
         messages: conversationLog,
         // max_tokens: 256, // limit token usage
       })
@@ -260,38 +302,38 @@ client.on(Events.InteractionCreate, async (interaction)=>{
       let a = result1.data.choices[0].message
      
 
-// The second part of prompting
-    let prevnews = ""
-    
-    await axios.get('https://api.itapi.cn/api/hotnews/zhihu?key=bZQMOsHBsRWsiDJ5jV8O8NQ9gb').then(res =>{
-    if (res.data.msg === '请求成功'){
-        let data = res.data.data
-        // console.log(data)
-        data.slice(0,10).forEach((news)=>{
-          prevnews += news.name + ", "
-        })
-        
-      }
-    }).catch(error =>{
-      console.log(error)
-    })
-    let conversationLog2 = [{
-      role:"user",
-      content:"你是一个AI小助手, "+ a.content +  "\n" + "这是今日的热点新闻:" + "[" + prevnews+ "]" + "请根据之前的三个用户标签，检索出用户可能感兴趣的三条新闻，并解释",
-    }]
-
-    console.log(conversationLog2)
-    const result = await openai
-      .createChatCompletion({
-        model: 'gpt-3.5-turbo',
-        messages: conversationLog2,
-        // max_tokens: 256, // limit token usage
+  // The second part of prompting
+      let prevnews = ""
+      
+      await axios.get('https://api.itapi.cn/api/hotnews/zhihu?key=bZQMOsHBsRWsiDJ5jV8O8NQ9gb').then(res =>{
+      if (res.data.msg === '请求成功'){
+          let data = res.data.data
+          // console.log(data)
+          data.slice(0,10).forEach((news)=>{
+            prevnews += news.name + ", "
+          })
+          
+        }
+      }).catch(error =>{
+        console.log(error)
       })
-      .catch((error) => {
-        console.log(`OPENAI ERR: ${error}`);
-      });
-    console.log(result.data.choices[0].message)
-    await interaction.editReply(result.data.choices[0].message);
+      let conversationLog2 = [{
+        role:"user",
+        content:"你是一个AI小助手, "+ a.content +  "\n" + "这是今日的热点新闻:" + "[" + prevnews+ "]" + "请根据之前的三个用户标签，检索出用户可能感兴趣的三条新闻，并解释",
+      }]
+
+      console.log(conversationLog2)
+      const result = await openai
+        .createChatCompletion({
+          model: 'gpt-4',
+          messages: conversationLog2,
+          // max_tokens: 256, // limit token usage
+        })
+        .catch((error) => {
+          console.log(`OPENAI ERR: ${error}`);
+        });
+      console.log(result.data.choices[0].message)
+      await interaction.editReply(result.data.choices[0].message);
     
       
     }
@@ -349,7 +391,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     console.log(conversationLog)
     const result = await openai
       .createChatCompletion({
-        model: 'gpt-3.5-turbo',
+        model: 'gpt-4',
         messages: conversationLog,
         // max_tokens: 256, // limit token usage
       })
