@@ -25,7 +25,7 @@ const { Client, Collection, Events, GatewayIntentBits, IntentsBitField, SlashCom
 const { Configuration, OpenAIApi } = require('openai');
 const fs = require('node:fs');
 const path = require('node:path');
-const { data } = require('./commands/news');
+const { data } = require('./commands/cnews');
 const wait = require('node:timers/promises').setTimeout;
 
 let PROD = 'http://localhost:4000'
@@ -70,13 +70,15 @@ const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('
 for (const file of commandFiles) {
 	const filePath = path.join(commandsPath, file);
 	const command = require(filePath);
+
 	// Set a new item in the Collection with the key as the command name and the value as the exported module
 	if ('data' in command && 'execute' in command) {
 		client.commands.set(command.data.name, command);
+    
 	} else {
 		console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
 	}
-}
+}  
 
 client.on('ready', () => {
   console.log('The bot is online!');
@@ -97,6 +99,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     console.error(`No command matching ${interaction.commandName} was found.`);
     return
   }
+  
   if (interaction.commandName === 'collect'){
     let prevMessages = await interaction.channel.messages.fetch({ limit: 1});
 		prevMessages.reverse()
@@ -166,6 +169,11 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 		await interaction.reply(`Successfully submitted the image! Check it up at ${PROD}/user/image`);
 	
   }
+  else if (interaction.commandName === 'enews'){
+    await interaction.deferReply();
+
+    command.execute(interaction, openai);
+  }
   else if (interaction.commandName === 'analyze'){
     let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
     prevMessages.reverse();
@@ -216,7 +224,8 @@ client.on(Events.InteractionCreate, async (interaction)=>{
   else if (interaction.commandName === 'past'){
     let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
     prevMessages.reverse();
-    let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
+    let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people\
+     involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
     let conversationLog = [
       { role: 'user', 
       content: sys_msg,
@@ -339,7 +348,7 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     }
 
    
-  else if(interaction.commandName === 'news'){
+  else if(interaction.commandName === 'cnews'){
     let sys_msg = "你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 并根据这三种话题, 从今日新闻中选出老朋友们最感兴趣的三条新闻, 并做出解释: "
     let conversationLog = [
         { role: 'user', 

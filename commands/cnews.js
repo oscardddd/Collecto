@@ -3,7 +3,7 @@ const https = require('https');
 
 module.exports = {
 	data: new SlashCommandBuilder()
-		.setName('news')
+		.setName('cnews')
 		.setDescription('Get a trending news that is of mutual interest!'),
 
 	async execute(interaction) {
