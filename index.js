@@ -170,9 +170,21 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 	
   }
   else if (interaction.commandName === 'enews'){
-    await interaction.deferReply();
+    try{
+      await interaction.deferReply();
 
-    command.execute(interaction, openai);
+      await command.execute(interaction)
+    }
+    catch{
+      console.error(error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+      } else {
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+      }
+    }
+
+    command.execute(interaction);
   }
   else if (interaction.commandName === 'analyze'){
     let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
@@ -349,66 +361,18 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
    
   else if(interaction.commandName === 'cnews'){
-    let sys_msg = "你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 并根据这三种话题, 从今日新闻中选出老朋友们最感兴趣的三条新闻, 并做出解释: "
-    let conversationLog = [
-        { role: 'user', 
-        content: sys_msg,
-        // name: interaction.author.username
-      
-      } 
-    ];
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 25 });
-    conversationLog.push({
-      role: 'user',
-      content: "这是用户之前的聊天记录: " 
-    })
-    prevMessages.reverse();
-    prevMessages.forEach((msg) => {
-      if (msg.author.username === 'CN-bot') return;
-      if(msg.content.startsWith('!')) return
-      if(msg.content.startsWith('/')) return
-
-      conversationLog.push({
-        role: 'user',
-        content: msg.content,
-      });
-    });
-    
-    let prevnews = ""
-    await interaction.deferReply();
-    await wait(5000);
-    await axios.get('https://api.itapi.cn/api/hotnews/zhihu?key=bZQMOsHBsRWsiDJ5jV8O8NQ9gb').then(res =>{
-    if (res.data.msg === '请求成功'){
-        let data = res.data.data
-        console.log(data)
-        data.forEach((news)=>{
-          prevnews += news.name + ", "
-        })
-        
+    try{
+      await command.execute(interaction)
+    }
+    catch (error) {
+      console.error(error);
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
+      } else {
+        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
       }
-    }).catch(error =>{
-      console.log(error)
-    })
-    conversationLog.push({
-      role:"user",
-      content:"这是今日的热点新闻, separated by comma:" + prevnews,
-    })
-   
+    }
     
-  
-  
-    console.log(conversationLog)
-    const result = await openai
-      .createChatCompletion({
-        model: 'gpt-4',
-        messages: conversationLog,
-        // max_tokens: 256, // limit token usage
-      })
-      .catch((error) => {
-        console.log(`OPENAI ERR: ${error}`);
-      });
-    console.log(result.data.choices[0].message)
-    await interaction.editReply(result.data.choices[0].message);
     }
 
     else{
