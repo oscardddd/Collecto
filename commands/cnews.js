@@ -15,7 +15,24 @@ module.exports = {
             apiKey: process.env.OPEN_AI,
         });
         const openai = new OpenAIApi(configuration);
-        let sys_msg = "你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 并根据这三种话题, 从今日新闻中选出老朋友们最感兴趣的三条新闻, 并做出解释: "
+        let sys_msg = 
+        `你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 并根据这三种话题, 从今日新闻中选出老朋友们最感兴趣的三条新闻, 请返回一个 JSON 格式, 包含三个话题, 每个话题对应一条新闻. 举个例子: 
+        {
+           "topics": [
+              {
+                "topic": "",
+                "news": ""
+              },
+              {
+                "topic": "D",
+                "news": ""
+              },
+              {
+                "topic": "",
+                "news": ""
+              }
+           ]
+        }`;
         let conversationLog = [
             { role: 'user', 
             content: sys_msg,
@@ -41,7 +58,6 @@ module.exports = {
             });
         });
         let prevnews = ""
-        await interaction.deferReply();
         await wait(5000);
         await axios.get('https://api.itapi.cn/api/hotnews/zhihu?key=bZQMOsHBsRWsiDJ5jV8O8NQ9gb').then(res =>{
         if (res.data.msg === '请求成功'){

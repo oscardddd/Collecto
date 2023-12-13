@@ -3,7 +3,7 @@ const app = express();
 const port = process.env.PORT || 4000;
 const dotenv = require("dotenv");
 const cors = require("cors");
-const userRouter = require("./routes/userRoutes");
+// const userRouter = require("./routes/userRoutes");
 require('dotenv/config')
 const makeid = require ('./makeid')
 const { uploadFile, getFileStream, sanitizeFile, uploadFile2} = require('./s3')
@@ -16,8 +16,6 @@ var downloadImage = require('./downloadfile')
 async function removeFile(dir){
   await fs.unlinkSync(dir)
   console.log(`successfully empty the uploaded picture at ${dir} `)
-  
-
 }
 
 
@@ -29,29 +27,6 @@ const { data } = require('./commands/cnews');
 const wait = require('node:timers/promises').setTimeout;
 
 let PROD = 'http://localhost:4000'
-
-app.use(
-  cors({
-    origin: ["http://localhost:3000", "https://cn-gallery.vercel.app"],
-    // origin: "https://cn-gallery.vercel.app",
-  })
-);
-
-app.get("/", (req, res) => {
-  res.send("Collective Narrative Server");
-});
-
-
-app.use("/user", userRouter);
-
-app.get("/test", (req,res)=>{
-  res.send("test123")
-})
-
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
 
 
 const client = new Client({
@@ -169,13 +144,12 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 		await interaction.reply(`Successfully submitted the image! Check it up at ${PROD}/user/image`);
 	
   }
-  else if (interaction.commandName === 'enews'){
+  else{
     try{
       await interaction.deferReply();
-
       await command.execute(interaction)
     }
-    catch{
+    catch(error){
       console.error(error);
       if (interaction.replied || interaction.deferred) {
         await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
@@ -183,212 +157,11 @@ client.on(Events.InteractionCreate, async (interaction)=>{
         await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
       }
     }
-
-    command.execute(interaction);
-  }
-  else if (interaction.commandName === 'analyze'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
-    prevMessages.reverse();
-    let sys_msg = 'You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame? \
-    For example, If one of the user mentioned he would have a birthday party next wednesday at 10 am, you would return user x has a birthday party next Wednesday.'
-    let conversationLog = [
-      { role: 'user', 
-      content: sys_msg,
-      // name: interaction.author.username
-    } 
-    ];
-   
-    prevMessages.forEach((msg) => {
-      // if (msg.content.startsWith('!')) return;
-      if (msg.author.id !== client.user.id && msg.author.bot) return;
-      if (msg.author.username === 'CN-bot') return;
-      if (msg.content.startsWith('!')) return;
-      if (msg.content.startsWith('/')) return;
-      if (msg.content.startsWith('+')) return;
-
-      conversationLog.push({
-          role: 'user',
-          content: msg.author.username + ': '+ msg.content,
-          name: msg.author.username
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\s]/gi, ''),
-      });
-    
-    });
-    console.log(conversationLog)
-
-    await interaction.deferReply();
-
-    const result = await openai
-        .createChatCompletion({
-          model: 'gpt-4',
-          messages: conversationLog,
-          max_tokens: 300, // limit token usage
-        })
-        .catch((error) => {
-          console.log(`OPENAI ERR: ${error}`);
-        });
-    // console.log(result)
-    await wait(4000);
-    await interaction.editReply(result.data.choices[0].message)
-  }
-// blast from the past
-  else if (interaction.commandName === 'past'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
-    prevMessages.reverse();
-    let sys_msg = 'You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people\
-     involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?'
-    let conversationLog = [
-      { role: 'user', 
-      content: sys_msg,
-      // name: interaction.author.username
-    } 
-    ];
-   
-    prevMessages.forEach((msg) => {
-      // if (msg.content.startsWith('!')) return;
-      if (msg.author.id !== client.user.id && msg.author.bot) return;
-      if (msg.author.username === 'CN-bot') return;
-      if (msg.content.startsWith('!')) return;
-      if (msg.content.startsWith('/')) return;
-      if (msg.content.startsWith('+')) return;
-
-      conversationLog.push({
-          role: 'user',
-          content: msg.author.username + ': '+ msg.content,
-          name: msg.author.username
-            .replace(/\s+/g, '_')
-            .replace(/[^\w\s]/gi, ''),
-      });
-    
-    });
-    console.log(conversationLog)
-
-    await interaction.deferReply();
-
-    const result = await openai
-        .createChatCompletion({
-          model: 'gpt-4',
-          messages: conversationLog,
-          max_tokens: 300, // limit token usage
-        })
-        .catch((error) => {
-          console.log(`OPENAI ERR: ${error}`);
-        });
-    // console.log(result)
-    await wait(4000);
-    await interaction.editReply(result.data.choices[0].message)
-
   }
 
-  else if(interaction.commandName === 'start'){
-      await interaction.deferReply();
-      await wait(4000);
-      let sys_msg = "你是一个帮助用户寻找共同话题的小助手,请你基于之前他们的聊天记录,总结出他们最感兴趣的三种话题, 请直接返回一个列表, 比如 [游戏, 电影, 音乐]"
-      let conversationLog = [
-          { role: 'user', 
-          content: sys_msg,
-          // name: interaction.author.username
-        
-        } 
-      ];
-      let prevMessages = await interaction.channel.messages.fetch({ limit: 25 });
-      conversationLog.push({
-        role: 'user',
-        content: "这是用户之前的聊天记录: " 
-      })
-      prevMessages.reverse();
-      prevMessages.forEach((msg) => {
-        if (msg.author.username === 'CN-bot') return;
-        if(msg.content.startsWith('!')) return
-        if(msg.content.startsWith('/')) return
-  
-        conversationLog.push({
-          role: 'user',
-          content: msg.content,
-        });
-      });
-      console.log("conversationlog1", conversationLog)
-      const result1 = await openai
-      .createChatCompletion({
-        model: 'gpt-4',
-        messages: conversationLog,
-        // max_tokens: 256, // limit token usage
-      })
-      .catch((error) => {
-        console.log(`OPENAI ERR: ${error}`);
-      });
-      
-      console.log(result1.data.choices[0].message);
-      let a = result1.data.choices[0].message
-     
 
-  // The second part of prompting
-      let prevnews = ""
-      
-      await axios.get('https://api.itapi.cn/api/hotnews/zhihu?key=bZQMOsHBsRWsiDJ5jV8O8NQ9gb').then(res =>{
-      if (res.data.msg === '请求成功'){
-          let data = res.data.data
-          // console.log(data)
-          data.slice(0,10).forEach((news)=>{
-            prevnews += news.name + ", "
-          })
-          
-        }
-      }).catch(error =>{
-        console.log(error)
-      })
-      let conversationLog2 = [{
-        role:"user",
-        content:"你是一个AI小助手, "+ a.content +  "\n" + "这是今日的热点新闻:" + "[" + prevnews+ "]" + "请根据之前的三个用户标签，检索出用户可能感兴趣的三条新闻，并解释",
-      }]
 
-      console.log(conversationLog2)
-      const result = await openai
-        .createChatCompletion({
-          model: 'gpt-4',
-          messages: conversationLog2,
-          // max_tokens: 256, // limit token usage
-        })
-        .catch((error) => {
-          console.log(`OPENAI ERR: ${error}`);
-        });
-      console.log(result.data.choices[0].message)
-      await interaction.editReply(result.data.choices[0].message);
-    
-      
-    }
-
-   
-  else if(interaction.commandName === 'cnews'){
-    try{
-      await command.execute(interaction)
-    }
-    catch (error) {
-      console.error(error);
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-      } else {
-        await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-      }
-    }
-    
-    }
-
-    else{
-      try{
-        await command.execute(interaction)
-      }
-      catch (error) {
-        console.error(error);
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-        } else {
-          await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-        }
-      }
-    }
-  })
+})
 
 
 

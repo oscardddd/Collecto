@@ -4,6 +4,7 @@ module.exports = {
 	data: new SlashCommandBuilder()
 		.setName('collect')
 		.setDescription('This command would collect the images sent in the group chat and generates a multi-image artifact.'),
+		
 	async execute(interaction) {
 		let prevMessages = await interaction.channel.messages.fetch({ limit: 1 });
 		prevMessages.reverse()

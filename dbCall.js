@@ -1,34 +1,29 @@
-var pg = require('pg');
+const mysql = require('mysql');
+const fs = require('fs');
+const ini = require('ini');
+// const config = require('./config.js');
 
-module.exports = async function(sql) {
-    var conString = process.env.DB_URL;
-    // var client = new pg.Client(conString);
-    
-    const credentials = {
-        user: process.env.USER,
-        host: process.env.HOST,
-        database: process.env.DATABASE,
-        password: process.env.PASSWORD,
-        port: 5432,
-    }
-    var client = new pg.Client(credentials);
-    try { 
-        await client.connect()
-        // console.log(sql)
-        let output;
-        if (typeof sql == 'object') {
-            output = []
-            for (let i=0; i < sql.length; i++) {
-                let res = await client.query(sql[i])
-                output.push(res.rows);
-            }
-        } else {
-            let res = await client.query(sql)
-            output = res.rows;
-        }
-        await client.end()
-        return output;
-    } catch (error) {
-        console.log(error)
-    }
-}
+
+const endpoint = process.env.DB_endpoint
+const port_number = process.env.port_number
+const user_name = process.env.user_name
+const user_pwd = process.env.user_pwd
+const db_name = process.env.db_name
+
+console.log(endpoint, port_number, user_name, user_pwd, db_name)
+//
+// creates connection object, but doesn't open connnection:
+//
+
+let dbConnection = mysql.createConnection(
+  {
+    host: endpoint,
+    port: port_number,
+    user: user_name,
+    password: user_pwd,
+    database: db_name,
+    multipleStatements: true  // allow multiple queries in one call
+  }
+);
+
+module.exports = dbConnection;
