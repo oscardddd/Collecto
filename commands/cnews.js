@@ -85,6 +85,9 @@ module.exports = {
             console.log(`OPENAI ERR: ${error}`);
         });
         console.log(result.data.choices[0].message)
+        let res = result.data.choices[0].message
+        let res2 = JSON.parse(res)
+        console.log(res.topics)
         await interaction.editReply(result.data.choices[0].message);  
 
 

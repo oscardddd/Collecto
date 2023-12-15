@@ -2,8 +2,9 @@ const { SlashCommandBuilder } = require('discord.js');
 const https = require('https');
 const { Configuration, OpenAIApi } = require('openai');
 const wait = require('node:timers/promises').setTimeout;
-const axios = require('axios')
-
+const axios = require('axios');
+const { send } = require('process');
+const dbConnection = require('../dbCall.js')
 
 
 module.exports = {
@@ -19,8 +20,8 @@ module.exports = {
 		let prevMessages = await interaction.channel.messages.fetch({ limit: 5 });
 		prevMessages.reverse();
 		let sys_msg = 'You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame?\
-		For example, If user Tim said to Amy that he would have a birthday party next wednesday at 10 am, you should only return a list of JSON objects with no explanations [{"sender": "Tim", "receiver":"Amy", "time": 2023-12-19 10:00:00, "event": "Birthday party"}].\
-		You should convert the time to SQL timestamp based on the timestamp right now: 2023-12-13 03:34:35. You should use 00:00:00 as the time if no specific hour is mentioned.'
+		For example, If user Tim said to Amy that he would have a birthday party next wednesday at 10 am, you should only return a list of JSON objects with no explanations [{"sender": "Tim", "time": 2023-12-19 10:00:00, "event": "Birthday party"}].\
+		You should convert the time to SQL timestamp based on the timestamp right now: 2023-12-13 03:34:35. You should use 00:00:00 as the time if no specific hour is mentioned. Return [ ] if the provided conversation does not have enough information.'
 		let conversationLog = [
 		  { role: 'user', 
 		  content: sys_msg,
@@ -49,38 +50,38 @@ module.exports = {
 	
 		// await interaction.deferReply();
 	
-		const result = await openai
+		openai
 			.createChatCompletion({
 			  model: 'gpt-4',
 			  messages: conversationLog,
 			  max_tokens: 300, // limit token usage
 			})
-			// .then(result =>{
-			// 	let data1 = result.data.choices[0]
-			// 	let data2 = JSON.parse(data1);
-			// 	console.log(data2)
-			// })
-			.catch((error) => {
-			  console.log(`OPENAI ERR: ${error}`);
-			});
-		// console.log(result)
-		await wait(4000);
+			.then(async (result)=>{
+				await wait(4000);
 		try{
-			let data1 = result.data.choices[0]
-			let data2 = JSON.parse(data1);
+			let data1 = result.data.choices[0].message.content
+			// console.log(data1)
+			let data2 = await JSON.parse(data1);
 			console.log(data2)
-			data2.forEach(item => {
-				let sender = item.sender
-				let timeStamp = (new Date(item.time)).toISOString().slice(0, 19).replace('T', ' ');
-				let event = item.event
-				let receiver = item.receiver
-				console.log(sender, receiver, timeStamp, event)
-			  });
-		
-			let sql = `INSERT INTO events (sender, receiver, time, eventname) 
-			VALUES (${sender}, ${receiver}, ${time}, ${event})`
+			let sender = ''
+			let timeStamp = ''
+			let event = ''
 
-			dbConnection.query(sql, async(error, res, _) => {
+			await data2.forEach(item => {
+				sender = item.sender
+				timeStamp = (new Date(item.time)).toISOString().slice(0, 19).replace('T', ' ');
+				event = item.event
+				// let receiver = item.receiver
+				console.log("loop: ", sender)
+			})
+			
+			console.log("aha")
+			let sql = `INSERT INTO events (sender, receiver, time, eventname) 
+			VALUES (${sender}, 'None', ${timeStamp}, ${event})`
+
+			console.log("sql: ", sql)
+
+			await dbConnection.query(sql, async(error, res, _) => {
 				if (error) {
 				  console.log("Error: ", error);
 				//   await interaction.editReply("db success")
@@ -94,5 +95,16 @@ module.exports = {
 		catch(error){
 			console.log("error while inserting into database: ", error)
 		}
+			})
+			// .then(result =>{
+			// 	let data1 = result.data.choices[0]
+			// 	let data2 = JSON.parse(data1);
+			// 	console.log(data2)
+			// })
+			.catch((error) => {
+			  console.log(`OPENAI ERR: ${error}`);
+			});
+		// console.log(result)
+		
 	},
 };
