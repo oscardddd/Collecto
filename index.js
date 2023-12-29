@@ -8,8 +8,11 @@ require('dotenv/config')
 const makeid = require ('./makeid')
 const { uploadFile, getFileStream, sanitizeFile, uploadFile2} = require('./s3')
 const axios = require('axios')
-var callDB = require('./dbCall')
 var downloadImage = require('./downloadfile')
+const dbConnection = require('./dbCall.js')
+
+
+
 // app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 // app.use(bodyParser.json({ limit: "50mb" }));
 
@@ -24,6 +27,7 @@ const { Configuration, OpenAIApi } = require('openai');
 const fs = require('node:fs');
 const path = require('node:path');
 const { data } = require('./commands/cnews');
+const { error } = require('node:console');
 const wait = require('node:timers/promises').setTimeout;
 
 let PROD = 'http://localhost:4000'
@@ -55,8 +59,55 @@ for (const file of commandFiles) {
 	}
 }  
 
-client.on('ready', () => {
+client.on('ready', async() => {
   console.log('The bot is online!');
+  console.log("try to fetch past events ...")
+  try{
+    client.users.fetch('734280804863180900', false).then((user) => {
+      user.send('hello world');
+     });
+    client.channels.cache.forEach(channel => {
+      console.log(`Channel ID: ${channel.id}`);
+      console.log
+      channel.members.forEach(member =>{
+        console.log("user id: ", member.id)
+      })
+      // If the channel is a text channel
+      // if (channel.type === 'text') {
+      //     channel.members.forEach(member => {
+      //         console.log(`User ID: ${member.id}`);
+      //     });
+      // }
+    });
+    let sql = `SELECT time FROM events`;
+    await dbConnection.query(sql, async(error, res, _) => {
+      if (error) {
+        console.log("Error: ", error);
+
+      } else {
+        console.log("db success: ", JSON.stringify(res))
+        res.forEach((chunk)=>{
+          let d1 = new Date(chunk.time);
+          let d2 = new Date();
+          if(d2 > d1){
+          console.log("find a passed event, call this")
+    
+            // client.users.send('id', 'content');
+
+            
+
+          }
+        })
+      }
+      })	
+
+  }
+  catch(error){
+    console.log(error)
+  }
+  
+
+
 });
 
 const configuration = new Configuration({
@@ -75,75 +126,6 @@ client.on(Events.InteractionCreate, async (interaction)=>{
     return
   }
   
-  if (interaction.commandName === 'collect'){
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 1});
-		prevMessages.reverse()
-    // console.log(prevMessages)
-    const sid = makeid(6)
-
-    let server_url = 'https://cn-gallery.vercel.app/libraries'
-    console.log(makeid(6))
-    let img_url = ''
-    prevMessages.forEach(async(msg) => {
-     
-      if(msg.attachments.size > 0){
-        let content = ''
-        if (msg.content.size > 0){
-          content = msg.content
-          console.log(content)
-        }
-        img_url = msg.attachments.first().url
-        let aha = await downloadImage(img_url, `./uploads/${sid}.jpg`)
-        console.log(img_url)
-       
-        // fs.exists( `./uploads/${sid}.jpg`, (exists) => {
-        //   console.log(exists ? '存在' : '不存在');
-        // });
-        let s3_result = await uploadFile2(`./uploads/${sid}.jpg`, sid)
-        console.log(s3_result.key)
-        
-        let sql = `INSERT INTO images(story_id, img_key) 
-        VALUES('${sid}', '${s3_result.key}') RETURNING id`;
-
-        let data = await callDB(sql)
-        if (!data || data.length == 0) {
-              res.status(404).send("unsuccess")
-              console.log("insert image unsuccess")
-        } else {
-              console.log("successfully insert key")
-            
-        }
-        await removeFile(`./uploads/${sid}.jpg`)
-
-      }
-      if(msg.content !== ''){
-        console.log("2: ", msg.content)
-
-        let content = msg.content
-        
-        let sql2 = `
-        UPDATE images
-        SET annotation='${content}'
-        WHERE img_key='${sid}'
-        RETURNING id;
-        `
-        let data = await callDB(sql2)
-        if (!data || data.length == 0) {
-              // res.status(404).send("unsuccess")
-              console.log("update annotation unsuccess")
-        } else {
-              console.log(`successfully update annotation for image ${sid}`)
-            
-        }
-
-        console.log(content)
-        
-        
-      }
-    })
-		await interaction.reply(`Successfully submitted the image! Check it up at ${PROD}/user/image`);
-	
-  }
   else{
     try{
       await interaction.deferReply();
@@ -175,9 +157,15 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
+  console.log(message.author)
+  // message.author.send("aha")
   // if (message.channel.id !== process.env.CHANNEL_ID) return;
   // if (message.content.startsWith('!')) return;
   if(message.content === 'ping'){
+    let d1 = new Date("2023-12-12 15:18:47")
+		let d2 = new Date()
+
+		console.log(d1.getTime() > d2.getTime())
     message.reply('pong');
   }
   if(message.content.startsWith('!')){

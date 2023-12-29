@@ -6,22 +6,26 @@ module.exports = {
 		.setDescription('This command would collect the images sent in the group chat and generates a multi-image artifact.'),
 		
 	async execute(interaction) {
-		let prevMessages = await interaction.channel.messages.fetch({ limit: 1 });
-		prevMessages.reverse()
-		// console.log(prevMessages.slice(2,4))
-		// prevMessages.forEach((msg) =>{
-		// 	if (msg.attachments.author.bot == true){
+		// let prevMessages = await interaction.channel.messages.fetch({ limit: 1 });
+		// prevMessages.reverse()
+		// // console.log(prevMessages.slice(2,4))
+		// // prevMessages.forEach((msg) =>{
+		// // 	if (msg.attachments.author.bot == true){
 				
-		// 	}
-		// })
-		let server_url = 'https://cn-gallery.vercel.app/libraries'
-		prevMessages.forEach((msg) => {
-			if (msg.attachments.size > 0){
-			  console.log("url", msg.attachments)
+		// // 	}
+		// // })
+		// let server_url = 'https://cn-gallery.vercel.app/libraries'
+		// prevMessages.forEach((msg) => {
+		// 	if (msg.attachments.size > 0){
+		// 	  console.log("url", msg.attachments)
 			  
-			}
-		  })
-		await interaction.reply(`Successfully submitted the image! Check it up at ${server_url}`);
+		// 	}
+		//   })
+		// await interaction.reply(`Successfully submitted the image! Check it up at ${server_url}`);
+		let d1 = new Date("2023-12-12 15:18:47")
+		let d2 = new Date()
+
+		console.log(d1.getTime() > d2.getTime())
 
 	},
 };
