@@ -24,7 +24,7 @@ module.exports = {
                 "news": ""
               },
               {
-                "topic": "D",
+                "topic": "",
                 "news": ""
               },
               {

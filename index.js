@@ -12,7 +12,7 @@ var downloadImage = require('./downloadfile')
 const dbConnection = require('./dbCall.js')
 
 
-
+let dict = {}
 // app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
 // app.use(bodyParser.json({ limit: "50mb" }));
 
@@ -63,15 +63,15 @@ client.on('ready', async() => {
   console.log('The bot is online!');
   console.log("try to fetch past events ...")
   try{
-    client.users.fetch('734280804863180900', false).then((user) => {
-      user.send('hello world');
-     });
+    // client.users.fetch('734280804863180900', false).then((user) => {
+    //   user.send('hello world');
+    // // });
     client.channels.cache.forEach(channel => {
       console.log(`Channel ID: ${channel.id}`);
-      console.log
-      channel.members.forEach(member =>{
-        console.log("user id: ", member.id)
-      })
+      dict[channel.id] = 0
+      
+      
+     
       // If the channel is a text channel
       // if (channel.type === 'text') {
       //     channel.members.forEach(member => {
@@ -79,6 +79,7 @@ client.on('ready', async() => {
       //     });
       // }
     });
+    console.log(dict)
     let sql = `SELECT time FROM events`;
     await dbConnection.query(sql, async(error, res, _) => {
       if (error) {
@@ -90,7 +91,12 @@ client.on('ready', async() => {
           let d1 = new Date(chunk.time);
           let d2 = new Date();
           if(d2 > d1){
-          console.log("find a passed event, call this")
+            console.log("find a passed event, call this")
+            client.users.fetch(chunk.receiver, false).then((user) => {
+              user.send(`Hey! Your friend ${chunk.sender} is going ${chunk.eventname} soon, wanna say something?`);
+            });
+
+          
     
             // client.users.send('id', 'content');
 
@@ -105,8 +111,6 @@ client.on('ready', async() => {
   catch(error){
     console.log(error)
   }
-  
-
 
 });
 
@@ -144,39 +148,29 @@ client.on(Events.InteractionCreate, async (interaction)=>{
 
 
 })
-
-
-
-
-  
-
-
-
-
 // Chatting commands
 
 client.on('messageCreate', async (message) => {
   if (message.author.bot) return;
-  console.log(message.author)
-  // message.author.send("aha")
-  // if (message.channel.id !== process.env.CHANNEL_ID) return;
-  // if (message.content.startsWith('!')) return;
-  if(message.content === 'ping'){
-    let d1 = new Date("2023-12-12 15:18:47")
-		let d2 = new Date()
+  tempc = message.channelId
+  console.log(message.channelId, message.author.id)
+  dict[message.channelId] +=1 
+  console.log(dict)
+  
+  if(dict[tempc] > 30){
+    console.log("more than 30 messages detected")
+  }
 
-		console.log(d1.getTime() > d2.getTime())
+  // dict['0'] += 1
+  console.log(dict)
+
+  if(message.content === 'ping'){
     message.reply('pong');
   }
   if(message.content.startsWith('!')){
     let conversationLog = [
       { role: 'system', 
       content: 'You are an AI assistant' },
-      // {
-      //   role:'user',
-      //   content: 'The example of a scene: Scene 1: {topic: Studying/Attending Classes, locations: [University Library, Classroom, Local Coffeeshop, Park], instruction: Take a short clip of studying or attending class}'
-      // }
-      
     ];
     try {
       await message.channel.sendTyping();

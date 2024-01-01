@@ -37,13 +37,13 @@ module.exports = {
 		// prints date in YYYY-MM-DD HH:MM:SS format
 		console.log(year + "-" + month + "-" + date + " " + hours + ":" + minutes + ":" + seconds);
 		let sys_msg = `You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame?\
-		For example, If user Tim said to Amy that he would have a birthday party next wednesday at 10 am, you should only return a list of JSON objects with no explanations [{"sender": "Tim", "time": 2023-12-19 10:00:00, "event": "Birthday party"}].\
+		For example, If user with id 001 said to user of id 002 that he would have a birthday party next wednesday at 10 am, you should only return a list of JSON objects with no explanations [{"sender": "001", "receiver": "002" "time": 2023-12-19 10:00:00, "event": "Birthday party"}].\
 		You should convert the time to SQL timestamp based on the timestamp right now: ${date_now}. You should use 00:00:00 as the time if no specific hour is mentioned. Return [ ] if the provided conversation does not have enough information.`
 		let conversationLog = [
 		  { role: 'user', 
 		  content: sys_msg,
 		  // name: interaction.author.username
-		} 
+			} 
 		];
 	   
 		prevMessages.forEach((msg) => {
@@ -74,45 +74,52 @@ module.exports = {
 			  max_tokens: 300, // limit token usage
 			})
 			.then(async (result)=>{
-				await wait(4000);
-		try{
-			let data1 = result.data.choices[0].message.content
-			// console.log(data1)
-			let data2 = await JSON.parse(data1);
-			console.log(data2)
-			let sender = ''
-			let timeStamp = ''
-			let event = ''
-
-			await data2.forEach(item => {
-				sender = item.sender
-				timeStamp = (new Date(item.time)).toISOString().slice(0, 19).replace('T', ' ');
-				event = item.event
-				// let receiver = item.receiver
-				console.log("sender: ", sender)
-				console.log("time: ", timeStamp)
-			})
-			
-			console.log("aha")
-			let sql = `INSERT INTO events (sender, receiver, time, eventname) 
-			VALUES ('${sender}', 'None', '${timeStamp}', '${event}')`
-
-			console.log("sql: ", sql)
-
-			await dbConnection.query(sql, async(error, res, _) => {
-				if (error) {
-				  console.log("Error: ", error);
-				//   await interaction.editReply("db success")
-
-				} else {
-				  console.log("db success: ", JSON.stringify(res))
-				//   await interaction.editReply("db success")
+				// await wait(4000);
+				// console.log(result.data.choices[0].message.content)
+				try{
+					// console.log(result)
+					let data1 = await result.data.choices[0].message.content
+					console.log(data1)
+					let data2 = await JSON.parse(data1);
+					console.log(data2)
+					let sender = ''
+					let receiver = ''
+					let timeStamp = ''
+					let event = ''
+		
+					await data2.forEach(item => {
+						sender = item.sender
+						receiver = item.receiver
+						timeStamp = (new Date(item.time)).toISOString().slice(0, 19).replace('T', ' ');
+						event = item.event
+						// let receiver = item.receiver
+						console.log("sender: ", sender)
+						console.log("receiver: ", receiver)
+						console.log("time: ", timeStamp)
+		
+					})
+					
+					console.log("aha")
+					let sql = `INSERT INTO events (sender, receiver, time, eventname) 
+					VALUES ('${sender}', 'None', '${timeStamp}', '${event}')`
+		
+					console.log("sql: ", sql)
+		
+					await dbConnection.query(sql, async(error, res, _) => {
+						if (error) {
+						  console.log("Error: ", error);
+						//   await interaction.editReply("db success")
+		
+						} else {
+						  console.log("db success: ", JSON.stringify(res))
+						//   await interaction.editReply("db success")
+						}
+					  })	
 				}
-			  })	
-		}
-		catch(error){
-			console.log("error while inserting into database: ", error)
-		}
+				catch(error){
+					console.log("error while inserting into database: ", error)
+				}
+	
 			})
 			// .then(result =>{
 			// 	let data1 = result.data.choices[0]

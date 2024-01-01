@@ -52,7 +52,7 @@ module.exports = {
             // })
             // await interaction.reply(prevnews)
             
-        }
+            }
             catch(err){
                 console.log(err)
             }
