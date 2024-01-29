@@ -22,10 +22,7 @@ module.exports = {
 		// 	}
 		//   })
 		// await interaction.reply(`Successfully submitted the image! Check it up at ${server_url}`);
-		let d1 = new Date("2023-12-12 15:18:47")
-		let d2 = new Date()
-
-		console.log(d1.getTime() > d2.getTime())
+	
 
 	},
 };

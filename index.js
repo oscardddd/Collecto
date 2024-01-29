@@ -75,9 +75,9 @@ client.on("ready", async () => {
   console.log("The bot is online!");
   console.log("try to fetch past events ...");
   try {
-    // client.users.fetch('734280804863180900', false).then((user) => {
-    //   user.send('hello world');
-    // // });
+    // client.users.fetch("734280804863180900", false).then((user) => {
+    //   user.send("hello world");
+    // });
     client.channels.cache.forEach((channel) => {
       console.log(`Channel ID: ${channel.id}`);
       dict[channel.id] = 0;
@@ -89,27 +89,37 @@ client.on("ready", async () => {
       //     });
       // }
     });
-    console.log(dict);
-    let sql = `SELECT time FROM events`;
-    await dbConnection.query(sql, async (error, res, _) => {
-      if (error) {
-        console.log("Error: ", error);
-      } else {
-        console.log("db success: ", JSON.stringify(res));
-        res.forEach((chunk) => {
-          let d1 = new Date(chunk.time);
-          let d2 = new Date();
-          if (d2 > d1) {
-            console.log("find a passed event, call this");
-            client.users.fetch(chunk.receiver, false).then((user) => {
-              user.send(
-                `Hey! Your friend ${chunk.sender} is going ${chunk.eventname} soon, wanna say something?`
-              );
-            });
-          }
-        });
-      }
-    });
+    setTimeout(async () => {
+      console.log(dict);
+      let sql = `SELECT * FROM events`;
+      await dbConnection.query(sql, async (error, res, _) => {
+        if (error) {
+          console.log("Error: ", error);
+        } else {
+          console.log("db success: ", JSON.stringify(res));
+          res.forEach((chunk) => {
+            // console.log(chunk);
+            let d1 = new Date(chunk.time);
+            let d2 = new Date();
+            if (d2 > d1) {
+              try {
+                if (chunk.receiver != "None" && chunk.receiver != "null") {
+                  console.log("find a passed event, call this");
+
+                  client.users.fetch(chunk.receiver, false).then((user) => {
+                    user.send(
+                      `Hey! Your friend ${chunk.sender} is going ${chunk.eventname} soon, wanna say something?`
+                    );
+                  });
+                }
+              } catch (error) {
+                console.log("error: ", error);
+              }
+            }
+          });
+        }
+      });
+    }, 10000);
   } catch (error) {
     console.log(error);
   }
@@ -158,6 +168,11 @@ client.on("messageCreate", async (message) => {
   console.log(dict);
 
   if (dict[tempc] >= 2) {
+    const channel = client.channels.cache.get(tempc);
+    const members = channel.members;
+    members.forEach((member) => {
+      console.log(member.id);
+    });
     console.log("more than 20 messages detected");
     const configuration = new Configuration({
       apiKey: process.env.OPEN_AI,
@@ -269,8 +284,9 @@ client.on("messageCreate", async (message) => {
             // console.log("time: ", timeStamp);
           });
 
-          let sql = `INSERT INTO events (sender, receiver, time, eventname) 
-          VALUES ('${sender}', 'None', '${timeStamp}', '${event}')`;
+          // 0 is not expired, 1 is expired
+          let sql = `INSERT INTO events (sender, receiver, time, eventname, expired) 
+          VALUES ('${sender}', '${receiver}', '${timeStamp}', '${event}', '0')`;
 
           console.log("sql: ", sql);
 
