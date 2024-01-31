@@ -89,7 +89,7 @@ client.on("ready", async () => {
       //     });
       // }
     });
-    setTimeout(async () => {
+    setInterval(async () => {
       console.log(dict);
       let sql = `SELECT * FROM events`;
       await dbConnection.query(sql, async (error, res, _) => {
@@ -119,7 +119,7 @@ client.on("ready", async () => {
           });
         }
       });
-    }, 10000);
+    }, 100000);
   } catch (error) {
     console.log(error);
   }
@@ -167,7 +167,8 @@ client.on("messageCreate", async (message) => {
   dict[message.channelId] += 1;
   console.log(dict);
 
-  if (dict[tempc] >= 2) {
+  if (dict[tempc] >= 1) {
+    dict[tempc] = 0;
     const channel = client.channels.cache.get(tempc);
     const members = channel.members;
     members.forEach((member) => {
@@ -246,7 +247,7 @@ client.on("messageCreate", async (message) => {
         name: msg.author.username.replace(/\s+/g, "_").replace(/[^\w\s]/gi, ""),
       });
     });
-    // console.log(conversationLog);
+    console.log(conversationLog);
 
     // await interaction.deferReply();
 
@@ -260,45 +261,55 @@ client.on("messageCreate", async (message) => {
         // await wait(4000);
         // console.log(result.data.choices[0].message.content)
         try {
+          // this is the GPT response
+          console.log(result.data.choices[0].message.content);
           // console.log(result)
           let data1 = await result.data.choices[0].message.content;
           // console.log(data1);
           let data2 = await JSON.parse(data1);
-          console.log(data2);
-          let sender = "";
-          let receiver = "";
-          let timeStamp = "";
-          let event = "";
 
-          await data2.forEach((item) => {
-            sender = item.sender;
-            receiver = item.receiver;
-            timeStamp = new Date(item.time)
-              .toISOString()
-              .slice(0, 19)
-              .replace("T", " ");
-            event = item.event;
-            // let receiver = item.receiver
-            // console.log("sender: ", sender);
-            // console.log("receiver: ", receiver);
-            // console.log("time: ", timeStamp);
-          });
+          if (data1 != "[]") {
+            console.log(data2);
+            let sender = "";
+            let receiver = "";
+            let timeStamp = "";
+            let event = "";
+
+            await data2.forEach((item) => {
+              sender = item.sender;
+              receiver = item.receiver;
+              timeStamp = new Date(item.time)
+                .toISOString()
+                .slice(0, 19)
+                .replace("T", " ");
+              event = item.event;
+              // let receiver = item.receiver
+              // console.log("sender: ", sender);
+              // console.log("receiver: ", receiver);
+              // console.log("time: ", timeStamp);
+            });
+            const members = await message.guild.members.fetch();
+            members.map((member) => {
+              console.log("member:", member.id);
+            });
+
+            let sql = `INSERT INTO events (sender, receiver, time, eventname, expired) 
+            VALUES ('${sender}', '${receiver}', '${timeStamp}', '${event}', '0')`;
+
+            console.log("sql: ", sql);
+
+            await dbConnection.query(sql, async (error, res, _) => {
+              if (error) {
+                console.log("Error: ", error);
+                //   await interaction.editReply("db success")
+              } else {
+                console.log("db success: ", JSON.stringify(res));
+                //   await interaction.editReply("db success")
+              }
+            });
+          }
 
           // 0 is not expired, 1 is expired
-          let sql = `INSERT INTO events (sender, receiver, time, eventname, expired) 
-          VALUES ('${sender}', '${receiver}', '${timeStamp}', '${event}', '0')`;
-
-          console.log("sql: ", sql);
-
-          await dbConnection.query(sql, async (error, res, _) => {
-            if (error) {
-              console.log("Error: ", error);
-              //   await interaction.editReply("db success")
-            } else {
-              console.log("db success: ", JSON.stringify(res));
-              //   await interaction.editReply("db success")
-            }
-          });
         } catch (error) {
           console.log("error while inserting into database: ", error);
         }
@@ -313,7 +324,19 @@ client.on("messageCreate", async (message) => {
   console.log(dict);
 
   if (message.content === "ping") {
+    client.users.fetch("1116246052014669864", false).then((user) => {
+      user.send("hello world");
+    });
     message.reply("pong");
+    let a = client.channels.fetch("1120907498094866546").then((res) => {
+      a = res.members;
+      a.forEach((member) => {
+        console.log(member.id);
+        client.users.fetch(member.id, false).then((user) => {
+          user.send("hello world");
+        });
+      });
+    });
   }
   if (message.content.startsWith("!")) {
     let conversationLog = [

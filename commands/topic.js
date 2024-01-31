@@ -1,22 +1,24 @@
 const { SlashCommandBuilder } = require("discord.js");
+const https = require("https");
+const { Configuration, OpenAIApi } = require("openai");
+const wait = require("node:timers/promises").setTimeout;
+const axios = require("axios");
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName("past")
-    .setDescription(
-      "This command would generate three past experience that might be mutually relevant to friends."
-    ),
+    .setName("topic")
+    .setDescription("Get a relevant blast from the past topic!"),
 
   async execute(interaction) {
     const configuration = new Configuration({
       apiKey: process.env.OPEN_AI,
     });
     const openai = new OpenAIApi(configuration);
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 25 });
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
     prevMessages.reverse();
     let sys_msg =
-      "You are an AI assistant. You would be given the conversation the users had. Can you identify the usernames of the people\
-      involved in the conversation and come up with 3 past experiences that the users might have all had based on the the conversation?";
+      "You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people\
+		involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?";
     let conversationLog = [
       {
         role: "user",
