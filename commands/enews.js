@@ -65,7 +65,7 @@ module.exports = {
           `https://newsapi.org/v2/top-headlines?apiKey=${process.env.NEWS_API}`
         )
         .then((res) => {
-          console.log(res);
+          // console.log(res);
           if (res.data.status != "ok") {
             return;
           } else {
