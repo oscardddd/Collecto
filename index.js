@@ -97,7 +97,9 @@ client.on("ready", async () => {
           console.log("Error: ", error);
         } else {
           console.log("db success: ", JSON.stringify(res));
-          res.forEach((chunk) => {
+          let eventlist = "";
+          let channelid = "";
+          res.forEach(async (chunk) => {
             // console.log(chunk);
             let d1 = new Date(chunk.time);
             let d2 = new Date();
@@ -114,46 +116,8 @@ client.on("ready", async () => {
                   let cur_id = chunk.id;
                   const cid = chunk.sender;
                   console.log("find a passed event");
-
-                  client.users
-                    .fetch(chunk.receiver, false)
-                    .then(async (user) => {
-                      const configuration = new Configuration({
-                        apiKey: process.env.OPEN_AI,
-                      });
-                      const openai = new OpenAIApi(configuration);
-                      let conversationLog = [
-                        {
-                          role: "user",
-                          content: `You are an AI assistant who wants to help a user to send a follow-up message to his friend about his friend's ${chunk.eventname} that happesn on ${chunk.time}\
-                          What would say to the user?`,
-                          // name: interaction.author.username
-                        },
-                      ];
-                      const result = await openai
-                        .createChatCompletion({
-                          model: "gpt-4",
-                          messages: conversationLog,
-                        })
-                        .catch((error) => {
-                          console.log(`OPENAI ERR ${error}`);
-                        });
-
-                      console.log(result.data.choices[0].message);
-                      let res = result.data.choices[0].message;
-                      const reminderChannel = client.channels.cache.get();
-                      if (reminderChannel) {
-                        reminderChannel.send(
-                          "Hey! It's being a while since you talked last time. Wanna share something new?"
-                        );
-                        timedict[key] = Date.now();
-                      } else {
-                        console.log(
-                          `Channel with ID ${reminderChannelId} was not found.`
-                        );
-                        timedict[key] = Date.now();
-                      }
-                    });
+                  eventlist = eventlist + " " + chunk.eventname;
+                  channelid = chunk.sender;
 
                   sql = `UPDATE events SET expired = 1 WHERE id = ${cur_id}`;
                   dbConnection.query(sql, async (error, res, _) => {
@@ -171,7 +135,43 @@ client.on("ready", async () => {
               }
             }
           });
+          console.log(eventlist.length);
+          if (eventlist.length > 0) {
+            console.log("have some events");
+            const configuration = new Configuration({
+              apiKey: process.env.OPEN_AI,
+            });
+            const openai = new OpenAIApi(configuration);
+            let conversationLog = [
+              {
+                role: "user",
+                content: `You are an AI assistant. Someone said in a conversation about some events he would do, and he should have done them.
+                Can you send a message in the channel to make people have some follow-up discussion about these events? Here are the events: ${eventlist}`,
+                // name: interaction.author.username
+              },
+            ];
+
+            const result = await openai
+              .createChatCompletion({
+                model: "gpt-4",
+                messages: conversationLog,
+              })
+              .catch((error) => {
+                console.log(`OPENAI ERR ${error}`);
+              });
+
+            console.log(result.data.choices[0].message);
+            let res1 = result.data.choices[0].message;
+
+            const fpChannel = client.channels.cache.get(channelid);
+            if (fpChannel) {
+              fpChannel.send(res1);
+            } else {
+              console.log(`Channel with ID ${fpChannel} was not found.`);
+            }
+          }
         }
+        eventlist = "";
 
         for (const key in timedict) {
           if (timedict.hasOwnProperty(key)) {
@@ -244,7 +244,7 @@ client.on("messageCreate", async (message) => {
   console.log(Date.now());
   // console.log(dict);
 
-  if (dict[tempc] >= 2) {
+  if (dict[tempc] >= 1) {
     dict[tempc] = 0;
     const channel = client.channels.cache.get(tempc);
     const members = channel.members;
@@ -256,7 +256,7 @@ client.on("messageCreate", async (message) => {
       apiKey: process.env.OPEN_AI,
     });
     const openai = new OpenAIApi(configuration);
-    let prevMessages = await message.channel.messages.fetch({ limit: 40 });
+    let prevMessages = await message.channel.messages.fetch({ limit: 30 });
     //let prevMessages = await interaction.channel.messages.fetch({ limit: 5 });
     prevMessages.reverse();
     let date_ob = new Date();
@@ -287,7 +287,7 @@ client.on("messageCreate", async (message) => {
     //   seconds;
     // prints date in YYYY-MM-DD HH:MM:SS format
     let date_now = Date.now();
-    let sys_msg = `You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame?\
+    let sys_msg = `You are an AI assistant. Based on the previous conversations, can you help identify one important event mentiond during the conversation that comes with a specific time frame?\
       For example, If a user said that he would have a birthday party next wednesday at 10 am at a channel, you should only return a list of JSON objects with no explanations [{"sender": "001", "time": 1709940615 , "event": "Birthday party"}].\
       You should convert the time to javascript epoch timestamp based on the timestamp right now: ${date_now}. You should use midnight as the time if no specific hour is mentioned. Return [ ] if the provided conversation does not have enough information.`;
     let conversationLog = [
