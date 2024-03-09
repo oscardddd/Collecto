@@ -18,6 +18,9 @@ const dbConnection = require("./dbCall.js");
 // const events = require("./events.js");
 
 let dict = {};
+let timedict = {};
+const cooldown_time = 32400000;
+const event_check = 10800000;
 
 async function removeFile(dir) {
   await fs.unlinkSync(dir);
@@ -36,7 +39,7 @@ const { Configuration, OpenAIApi } = require("openai");
 const fs = require("node:fs");
 const path = require("node:path");
 const { data } = require("./commands/cnews");
-const { error } = require("node:console");
+const { error, time } = require("node:console");
 const wait = require("node:timers/promises").setTimeout;
 
 let PROD = "http://localhost:4000";
@@ -75,9 +78,6 @@ client.on("ready", async () => {
   console.log("The bot is online!");
   console.log("try to fetch past events ...");
   try {
-    // client.users.fetch("734280804863180900", false).then((user) => {
-    //   user.send("hello world");
-    // });
     client.channels.cache.forEach((channel) => {
       console.log(`Channel ID: ${channel.id}`);
       dict[channel.id] = 0;
@@ -90,7 +90,7 @@ client.on("ready", async () => {
       // }
     });
     setInterval(async () => {
-      console.log(dict);
+      // console.log(dict);
       let sql = `SELECT * FROM events`;
       await dbConnection.query(sql, async (error, res, _) => {
         if (error) {
@@ -101,15 +101,69 @@ client.on("ready", async () => {
             // console.log(chunk);
             let d1 = new Date(chunk.time);
             let d2 = new Date();
+            console.log(d1, d2);
+
             if (d2 > d1) {
               try {
-                if (chunk.receiver != "None" && chunk.receiver != "null") {
-                  console.log("find a passed event, call this");
+                if (
+                  chunk.receiver != "None" &&
+                  chunk.receiver != "null" &&
+                  chunk.time != 0 &&
+                  chunk.expired == 0
+                ) {
+                  let cur_id = chunk.id;
+                  const cid = chunk.sender;
+                  console.log("find a passed event");
 
-                  client.users.fetch(chunk.receiver, false).then((user) => {
-                    user.send(
-                      `Hey! Your friend ${chunk.sender} is going ${chunk.eventname} soon, wanna say something?`
-                    );
+                  client.users
+                    .fetch(chunk.receiver, false)
+                    .then(async (user) => {
+                      const configuration = new Configuration({
+                        apiKey: process.env.OPEN_AI,
+                      });
+                      const openai = new OpenAIApi(configuration);
+                      let conversationLog = [
+                        {
+                          role: "user",
+                          content: `You are an AI assistant who wants to help a user to send a follow-up message to his friend about his friend's ${chunk.eventname} that happesn on ${chunk.time}\
+                          What would say to the user?`,
+                          // name: interaction.author.username
+                        },
+                      ];
+                      const result = await openai
+                        .createChatCompletion({
+                          model: "gpt-4",
+                          messages: conversationLog,
+                        })
+                        .catch((error) => {
+                          console.log(`OPENAI ERR ${error}`);
+                        });
+
+                      console.log(result.data.choices[0].message);
+                      let res = result.data.choices[0].message;
+                      const reminderChannel = client.channels.cache.get();
+                      if (reminderChannel) {
+                        reminderChannel.send(
+                          "Hey! It's being a while since you talked last time. Wanna share something new?"
+                        );
+                        timedict[key] = Date.now();
+                      } else {
+                        console.log(
+                          `Channel with ID ${reminderChannelId} was not found.`
+                        );
+                        timedict[key] = Date.now();
+                      }
+                    });
+
+                  sql = `UPDATE events SET expired = 1 WHERE id = ${cur_id}`;
+                  dbConnection.query(sql, async (error, res, _) => {
+                    if (error) {
+                      console.log("Error: ", error);
+                      //   await interaction.editReply("db success")
+                    } else {
+                      console.log("db success: ", JSON.stringify(res));
+                      //   await interaction.editReply("db success")
+                    }
                   });
                 }
               } catch (error) {
@@ -118,8 +172,29 @@ client.on("ready", async () => {
             }
           });
         }
+
+        for (const key in timedict) {
+          if (timedict.hasOwnProperty(key)) {
+            // 9 hours time gap
+            if (Date.now() - timedict[key] > cooldown_time) {
+              console.log(key, "conversation cooldown detected");
+              const reminderChannel = client.channels.cache.get(key);
+              if (reminderChannel) {
+                reminderChannel.send(
+                  "Hey! It's being a while since you talked last time. Wanna share something new?"
+                );
+                timedict[key] = Date.now();
+              } else {
+                console.log(
+                  `Channel with ID ${reminderChannelId} was not found.`
+                );
+                timedict[key] = Date.now();
+              }
+            }
+          }
+        }
       });
-    }, 100000);
+    }, 3000);
   } catch (error) {
     console.log(error);
   }
@@ -165,21 +240,23 @@ client.on("messageCreate", async (message) => {
   tempc = message.channelId;
   console.log(message.channelId, message.author.id);
   dict[message.channelId] += 1;
-  console.log(dict);
+  timedict[message.channelId] = Date.now();
+  console.log(Date.now());
+  // console.log(dict);
 
-  if (dict[tempc] >= 1) {
+  if (dict[tempc] >= 2) {
     dict[tempc] = 0;
     const channel = client.channels.cache.get(tempc);
     const members = channel.members;
     members.forEach((member) => {
       console.log(member.id);
     });
-    console.log("more than 20 messages detected");
+    console.log(`more than 20 messages detected on channel ${tempc}`);
     const configuration = new Configuration({
       apiKey: process.env.OPEN_AI,
     });
     const openai = new OpenAIApi(configuration);
-    let prevMessages = await message.channel.messages.fetch({ limit: 5 });
+    let prevMessages = await message.channel.messages.fetch({ limit: 40 });
     //let prevMessages = await interaction.channel.messages.fetch({ limit: 5 });
     prevMessages.reverse();
     let date_ob = new Date();
@@ -196,35 +273,23 @@ client.on("messageCreate", async (message) => {
     // current seconds
     let seconds = date_ob.getSeconds();
 
-    let date_now =
-      year +
-      "-" +
-      month +
-      "-" +
-      date +
-      " " +
-      hours +
-      ":" +
-      minutes +
-      ":" +
-      seconds;
+    // let date_now =
+    //   year +
+    //   "-" +
+    //   month +
+    //   "-" +
+    //   date +
+    //   " " +
+    //   hours +
+    //   ":" +
+    //   minutes +
+    //   ":" +
+    //   seconds;
     // prints date in YYYY-MM-DD HH:MM:SS format
-    console.log(
-      year +
-        "-" +
-        month +
-        "-" +
-        date +
-        " " +
-        hours +
-        ":" +
-        minutes +
-        ":" +
-        seconds
-    );
+    let date_now = Date.now();
     let sys_msg = `You are an AI assistant. Based on the previous conversations, can you help identify the important event mentiond during the conversation that comes with a specific time frame?\
-      For example, If user with id 001 said to user of id 002 that he would have a birthday party next wednesday at 10 am, you should only return a list of JSON objects with no explanations [{"sender": "001", "receiver": "002" "time": 2023-12-19 10:00:00, "event": "Birthday party"}].\
-      You should convert the time to SQL timestamp based on the timestamp right now: ${date_now}. You should use 00:00:00 as the time if no specific hour is mentioned. Return [ ] if the provided conversation does not have enough information.`;
+      For example, If a user said that he would have a birthday party next wednesday at 10 am at a channel, you should only return a list of JSON objects with no explanations [{"sender": "001", "time": 1709940615 , "event": "Birthday party"}].\
+      You should convert the time to javascript epoch timestamp based on the timestamp right now: ${date_now}. You should use midnight as the time if no specific hour is mentioned. Return [ ] if the provided conversation does not have enough information.`;
     let conversationLog = [
       {
         role: "user",
@@ -247,9 +312,7 @@ client.on("messageCreate", async (message) => {
         name: msg.author.username.replace(/\s+/g, "_").replace(/[^\w\s]/gi, ""),
       });
     });
-    console.log(conversationLog);
-
-    // await interaction.deferReply();
+    // console.log(conversationLog);
 
     openai
       .createChatCompletion({
@@ -258,8 +321,6 @@ client.on("messageCreate", async (message) => {
         max_tokens: 300, // limit token usage
       })
       .then(async (result) => {
-        // await wait(4000);
-        // console.log(result.data.choices[0].message.content)
         try {
           // this is the GPT response
           console.log(result.data.choices[0].message.content);
@@ -269,32 +330,32 @@ client.on("messageCreate", async (message) => {
           let data2 = await JSON.parse(data1);
 
           if (data1 != "[]") {
-            console.log(data2);
+            console.log("test data2 ", data2);
             let sender = "";
             let receiver = "";
-            let timeStamp = "";
+            let timeStamp = 0;
             let event = "";
 
-            await data2.forEach((item) => {
-              sender = item.sender;
-              receiver = item.receiver;
-              timeStamp = new Date(item.time)
-                .toISOString()
-                .slice(0, 19)
-                .replace("T", " ");
+            data2.forEach((item) => {
+              sender = tempc;
+              // receiver = item.receiver;
+              timeStamp = item.time;
               event = item.event;
               // let receiver = item.receiver
               // console.log("sender: ", sender);
               // console.log("receiver: ", receiver);
               // console.log("time: ", timeStamp);
             });
-            const members = await message.guild.members.fetch();
-            members.map((member) => {
-              console.log("member:", member.id);
-            });
+            // const members = await message.guild.members.fetch();
+            // members.map((member) => {
+            //   console.log("member:", member.id);
+            // });
+            console.log();
 
             let sql = `INSERT INTO events (sender, receiver, time, eventname, expired) 
-            VALUES ('${sender}', '${receiver}', '${timeStamp}', '${event}', '0')`;
+            VALUES ('${tempc}', '0', FROM_UNIXTIME(${
+              timeStamp / 1000
+            }), '${event}', '0')`;
 
             console.log("sql: ", sql);
 
@@ -308,7 +369,6 @@ client.on("messageCreate", async (message) => {
               }
             });
           }
-
           // 0 is not expired, 1 is expired
         } catch (error) {
           console.log("error while inserting into database: ", error);
@@ -323,21 +383,21 @@ client.on("messageCreate", async (message) => {
   // dict['0'] += 1
   console.log(dict);
 
-  if (message.content === "ping") {
-    client.users.fetch("1116246052014669864", false).then((user) => {
-      user.send("hello world");
-    });
-    message.reply("pong");
-    let a = client.channels.fetch("1120907498094866546").then((res) => {
-      a = res.members;
-      a.forEach((member) => {
-        console.log(member.id);
-        client.users.fetch(member.id, false).then((user) => {
-          user.send("hello world");
-        });
-      });
-    });
-  }
+  // if (message.content === "ping") {
+  //   client.users.fetch("1116246052014669864", false).then((user) => {
+  //     user.send("hello world");
+  //   });
+  //   message.reply("pong");
+  //   let a = client.channels.fetch("1120907498094866546").then((res) => {
+  //     a = res.members;
+  //     a.forEach((member) => {
+  //       console.log(member.id);
+  //       client.users.fetch(member.id, false).then((user) => {
+  //         user.send("hello world");
+  //       });
+  //     });
+  //   });
+  // }
   if (message.content.startsWith("!")) {
     let conversationLog = [
       { role: "system", content: "You are an AI assistant" },

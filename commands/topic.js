@@ -14,11 +14,10 @@ module.exports = {
       apiKey: process.env.OPEN_AI,
     });
     const openai = new OpenAIApi(configuration);
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 15 });
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 40 });
     prevMessages.reverse();
     let sys_msg =
-      "You are an AI assistant. You would first given some user information, and then the conversation the users had. Can you identify the usernames of the people\
-		involved in the conversation and come up with 3 topics that the users are mutually interested in based on the user information and the conversation?";
+      "You are a friend of the users. You would first given some user information, and then the conversation the users had. Can you come up with 3 topics that the users are mutually interested in based on the user information and the conversation?";
     let conversationLog = [
       {
         role: "user",
@@ -43,7 +42,7 @@ module.exports = {
     });
     console.log(conversationLog);
 
-    await interaction.deferReply();
+    // await interaction.deferReply();
 
     const result = await openai
       .createChatCompletion({
@@ -56,6 +55,8 @@ module.exports = {
       });
     // console.log(result)
     await wait(4000);
+    console.log("topic");
+
     await interaction.editReply(result.data.choices[0].message);
   },
 };

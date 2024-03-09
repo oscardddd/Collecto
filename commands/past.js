@@ -1,4 +1,8 @@
 const { SlashCommandBuilder } = require("discord.js");
+const https = require("https");
+const { Configuration, OpenAIApi } = require("openai");
+const wait = require("node:timers/promises").setTimeout;
+const axios = require("axios");
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -12,11 +16,11 @@ module.exports = {
       apiKey: process.env.OPEN_AI,
     });
     const openai = new OpenAIApi(configuration);
-    let prevMessages = await interaction.channel.messages.fetch({ limit: 25 });
+    let prevMessages = await interaction.channel.messages.fetch({ limit: 40 });
     prevMessages.reverse();
     let sys_msg =
       "You are an AI assistant. You would be given the conversation the users had. Can you identify the usernames of the people\
-      involved in the conversation and come up with 3 past experiences that the users might have all had based on the the conversation?";
+      involved in the conversation and come up with 3 past experiences that the users might have all had based on the the conversation? Your job is to interest people and make them engage in conversation topics you provided.";
     let conversationLog = [
       {
         role: "user",
@@ -41,7 +45,7 @@ module.exports = {
     });
     console.log(conversationLog);
 
-    await interaction.deferReply();
+    // await interaction.deferReply();
 
     const result = await openai
       .createChatCompletion({
@@ -54,6 +58,7 @@ module.exports = {
       });
     // console.log(result)
     await wait(4000);
+    console.log("past");
     await interaction.editReply(result.data.choices[0].message);
   },
 };
